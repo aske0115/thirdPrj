@@ -2,16 +2,19 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://yidcp5o32mc5"
-path="res://.godot/imported/boss-0.6.png-344e3ad232dea456b4d77e1687d46815.ctex"
+uid="uid://8ilv8pbgrmv2"
+path="res://.godot/imported/Executioner_Executioner_Orange.png-e1dc5853b48a674c066bba1db7025024.ctex"
 metadata={
 "vram_texture": false
+}
+generator_parameters={
+"md5": "fe2c0628192cbc201859abb1bb2fe7b7"
 }
 
 [deps]
 
-source_file="res://docs/screens/boss-0.6.png"
-dest_files=["res://.godot/imported/boss-0.6.png-344e3ad232dea456b4d77e1687d46815.ctex"]
+source_file="res://assets/ships/Executioner_Executioner_Orange.png"
+dest_files=["res://.godot/imported/Executioner_Executioner_Orange.png-e1dc5853b48a674c066bba1db7025024.ctex"]
 
 [params]
 
@@ -23,7 +26,7 @@ compress/rdo_quality_loss=0.0
 compress/hdr_compression=1
 compress/normal_map=0
 compress/channel_pack=0
-mipmaps/generate=false
+mipmaps/generate=true
 mipmaps/limit=-1
 roughness/mode=0
 roughness/src_normal=""

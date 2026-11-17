@@ -15,3 +15,13 @@
 
 - 2026-11-17 보스 러시로 바꾸며 차·도시 모델(`assets/cars`·`assets/city`)은 뺌(태그 `wrecker-poc`에 남음). 효과음은 합성(`scripts/synth.gd`: 사격·보석·폭발·경보)과 Kenney Impact Sounds를 섞어 씀.
 - 후보: Kenney Space Kit(https://kenney.nl/assets/space-kit, CC0 원문 확인, 우주선 craft_speederA~D·포탑 turret_single/double·발전기·구조물 GLTF), Kenney Space Station Kit(CC0 확인), Quaternius Ultimate Spaceships(CC0, glTF, 구글 드라이브).
+
+## 그림 시안(2026-11-17 저녁) 추가
+| 팩 | 받은 곳 | 저장소 위치 | 라이선스 원문 | 쓰는 파일 |
+|---|---|---|---|---|
+| Quaternius Ultimate Spaceships (May 2021) | https://quaternius.com/packs/ultimatespaceships.html → 구글 드라이브 | `assets/ships/` | `License.txt` "CC0 1.0 Universal" | Striker.gltf(내 기체), Executioner.gltf(보스 몸통), 텍스처 내장(기본색). 팩에 11종·색 5종 |
+| Kenney Space Kit | https://kenney.nl/assets/space-kit | `assets/kenney-space/` | `License.txt` "Creative Commons Zero, CC0" | turret_double·turret_single·machine_generatorLarge·satelliteDish_detailed(GLB) |
+| Black Han Sans | Google Fonts(github.com/google/fonts ofl/blackhansans) | `assets/fonts/` | `OFL-BlackHanSans.txt`(SIL OFL 1.1) | 한글 제목 |
+| Orbitron | Google Fonts(ofl/orbitron) | `assets/fonts/` | `OFL-Orbitron.txt`(SIL OFL 1.1) | 숫자·영문 |
+- 구글 드라이브 받는 법: 폴더 페이지의 파일 `aria-label`과 `ssk` 속성에서 파일 ID를 뽑아 `https://drive.usercontent.google.com/download?id=<ID>&export=download&confirm=t`.
+- OFL 글꼴은 게임에 넣어 배포 가능(글꼴 파일만 따로 팔 수 없음, 라이선스 동봉).
