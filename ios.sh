@@ -7,9 +7,9 @@ G=/Applications/Godot.app/Contents/MacOS/Godot
 DEV=${1:-$(xcrun devicectl list devices 2>/dev/null | awk '/connected/ && /physical/ {for(i=1;i<=NF;i++) if($i ~ /^[0-9A-F]{8}-[0-9A-F]{16}$/) {print $i; exit}}')}
 [ -z "$DEV" ] && { echo "연결된 iPhone이 없습니다(xcrun devicectl list devices)"; exit 1; }
 rm -rf build/ios && mkdir -p build/ios
-$G --headless --path . --export-debug "iOS" build/ios/MidnightWrecker.ipa
+$G --headless --path . --export-debug "iOS" build/ios/BossRush.ipa
 cd build/ios
-xcodebuild -project MidnightWrecker.xcodeproj -scheme MidnightWrecker -configuration Debug \
+xcodebuild -project BossRush.xcodeproj -scheme BossRush -configuration Debug \
   -destination "id=$DEV" -derivedDataPath dd -allowProvisioningUpdates build | grep -E "error|BUILD"
-xcrun devicectl device install app --device "$DEV" dd/Build/Products/Debug-iphoneos/MidnightWrecker.app
-xcrun devicectl device process launch --device "$DEV" kr.co.daeun.midnightwrecker
+xcrun devicectl device install app --device "$DEV" dd/Build/Products/Debug-iphoneos/BossRush.app
+xcrun devicectl device process launch --device "$DEV" kr.co.daeun.bossrush

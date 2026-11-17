@@ -1,6 +1,6 @@
 # AGENTS.md — 세 번째 게임(thirdPrj) 작업 규칙
 
-> 지금 **기획 변경 중**(결정 007). 아래 「프로젝트 한 줄」은 보존된 쇠공 PoC(태그 `wrecker-poc`) 기준입니다. 최신 상태는 `docs/HANDOFF.md`.
+> 지금 기획은 **「보스 러시」**(결정 008, `docs/GDD.md`). 아래 「프로젝트 한 줄」의 쇠공은 태그 `wrecker-poc`로 보존된 이전 PoC입니다. 최신 상태는 `docs/HANDOFF.md`.
 
 이 저장소에서 작업하는 사람·AI 에이전트(Claude Code, Codex 등)가 **가장 먼저** 읽는 문서입니다.
 

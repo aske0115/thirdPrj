@@ -1,0 +1,250 @@
+{
+  "id": "iron_whale",
+  "week": 1,
+  "name": {
+    "ko": "강철 고래",
+    "en": "Iron Whale"
+  },
+  "intro": {
+    "ko": "구름 아래서 떠오른 첫 번째 거신",
+    "en": "The first colossus rises from beneath the clouds"
+  },
+  "hull_color": [
+    0.2,
+    0.21,
+    0.32
+  ],
+  "edge_color": [
+    2.2,
+    1.1,
+    0.45
+  ],
+  "parts": [
+    {
+      "id": "core",
+      "group": "core",
+      "phase": 3,
+      "shape": "core",
+      "x": 0,
+      "y": 0,
+      "r": 62,
+      "hp": 950
+    },
+    {
+      "id": "gun_l",
+      "group": "cannon",
+      "phase": 2,
+      "shape": "gun",
+      "x": -205,
+      "y": -55,
+      "r": 46,
+      "hp": 300
+    },
+    {
+      "id": "gun_r",
+      "group": "cannon",
+      "phase": 2,
+      "shape": "gun",
+      "x": 205,
+      "y": -55,
+      "r": 46,
+      "hp": 300
+    },
+    {
+      "id": "plate1",
+      "group": "armor",
+      "phase": 1,
+      "shape": "plate",
+      "x": -250,
+      "y": 85,
+      "r": 38,
+      "hp": 45
+    },
+    {
+      "id": "plate2",
+      "group": "armor",
+      "phase": 1,
+      "shape": "plate",
+      "x": -150,
+      "y": 120,
+      "r": 38,
+      "hp": 55
+    },
+    {
+      "id": "plate3",
+      "group": "armor",
+      "phase": 1,
+      "shape": "plate",
+      "x": -50,
+      "y": 150,
+      "r": 38,
+      "hp": 40
+    },
+    {
+      "id": "plate4",
+      "group": "armor",
+      "phase": 1,
+      "shape": "plate",
+      "x": 50,
+      "y": 150,
+      "r": 38,
+      "hp": 40
+    },
+    {
+      "id": "plate5",
+      "group": "armor",
+      "phase": 1,
+      "shape": "plate",
+      "x": 150,
+      "y": 120,
+      "r": 38,
+      "hp": 55
+    },
+    {
+      "id": "plate6",
+      "group": "armor",
+      "phase": 1,
+      "shape": "plate",
+      "x": 250,
+      "y": 85,
+      "r": 38,
+      "hp": 45
+    }
+  ],
+  "phases": [
+    {
+      "patterns": [
+        {
+          "from": "gun_l",
+          "kind": "fan",
+          "count": 5,
+          "spread": 36,
+          "speed": 330,
+          "every": 1.1,
+          "aim": true,
+          "color": [
+            2.6,
+            0.9,
+            0.35
+          ]
+        },
+        {
+          "from": "gun_r",
+          "kind": "fan",
+          "count": 5,
+          "spread": 36,
+          "speed": 330,
+          "every": 1.1,
+          "aim": true,
+          "delay": 0.55,
+          "color": [
+            2.6,
+            0.9,
+            0.35
+          ]
+        },
+        {
+          "from": "core",
+          "kind": "ring",
+          "count": 18,
+          "speed": 230,
+          "every": 1.6,
+          "spin": 7,
+          "color": [
+            1.0,
+            0.55,
+            2.6
+          ]
+        }
+      ]
+    },
+    {
+      "patterns": [
+        {
+          "from": "gun_l",
+          "kind": "spiral",
+          "arms": 3,
+          "speed": 280,
+          "every": 0.09,
+          "spin_rate": 140,
+          "color": [
+            2.6,
+            0.75,
+            0.3
+          ]
+        },
+        {
+          "from": "gun_r",
+          "kind": "spiral",
+          "arms": 3,
+          "speed": 280,
+          "every": 0.09,
+          "spin_rate": -140,
+          "color": [
+            2.6,
+            0.75,
+            0.3
+          ]
+        },
+        {
+          "from": "core",
+          "kind": "fan",
+          "count": 9,
+          "spread": 70,
+          "speed": 380,
+          "every": 1.4,
+          "aim": true,
+          "color": [
+            1.0,
+            0.6,
+            2.8
+          ]
+        }
+      ]
+    },
+    {
+      "patterns": [
+        {
+          "from": "core",
+          "kind": "spiral",
+          "arms": 5,
+          "speed": 250,
+          "every": 0.08,
+          "spin_rate": 95,
+          "color": [
+            2.8,
+            0.7,
+            0.3
+          ]
+        },
+        {
+          "from": "core",
+          "kind": "ring",
+          "count": 28,
+          "speed": 190,
+          "every": 1.2,
+          "spin": 6,
+          "color": [
+            1.0,
+            0.6,
+            2.8
+          ]
+        },
+        {
+          "from": "core",
+          "kind": "fan",
+          "count": 3,
+          "spread": 14,
+          "speed": 520,
+          "every": 0.7,
+          "aim": true,
+          "color": [
+            2.8,
+            2.6,
+            2.2
+          ]
+        }
+      ]
+    }
+  ]
+}

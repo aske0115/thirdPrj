@@ -2,9 +2,9 @@
 config_version=5
 
 [application]
-config/name="Midnight Wrecker"
+config/name="Boss Rush"
 config/name_localized={
-"ko": "한밤의 쇠공"
+"ko": "보스 러시"
 }
 run/main_scene="res://scenes/main.tscn"
 config/features=PackedStringArray("4.7", "Mobile")
@@ -25,6 +25,7 @@ window/handheld/orientation=1
 pointing/emulate_touch_from_mouse=true
 
 [rendering]
+viewport/hdr_2d=true
 renderer/rendering_method="mobile"
 textures/vram_compression/import_etc2_astc=true
 anti_aliasing/quality/msaa_3d=1

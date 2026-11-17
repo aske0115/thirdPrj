@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://cpoabmdkhpqjj"
-path="res://.godot/imported/colormap.png-ab2225cf77ab9b846459e9faf26cdd73.ctex"
+uid="uid://c1g1d53cxsusp"
+path="res://.godot/imported/boss-2.6.png-32c85cc0ab3f02aa146bc6eacf34b05c.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/city/Textures/colormap.png"
-dest_files=["res://.godot/imported/colormap.png-ab2225cf77ab9b846459e9faf26cdd73.ctex"]
+source_file="res://docs/screens/boss-2.6.png"
+dest_files=["res://.godot/imported/boss-2.6.png-32c85cc0ab3f02aa146bc6eacf34b05c.ctex"]
 
 [params]
 
