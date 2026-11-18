@@ -59,9 +59,9 @@ static func make(day: int) -> Dictionary:
 	var warm: Array = WARM[r.randi() % WARM.size()]
 	var cool: Array = COOL[r.randi() % COOL.size()]
 	var phases := [
-		{patterns = [_fan(r, "gun_l", warm, 0.0), _fan(r, "gun_r", warm, 0.55), _ring(r, "core", cool, 18)]},
+		{patterns = [_fan(r, "gun_l", warm, 0.0), _fan(r, "gun_r", warm, 0.55), _ring(r, "core", cool, 18, 1.6, 1.9)]},
 		{patterns = [_gun2(r, "gun_l", warm, 1.0), _gun2(r, "gun_r", warm, -1.0), _fan(r, "core", cool, 0.0, 9, 70)]},
-		{patterns = [_spiral(r, "core", warm, 5), _ring(r, "core", cool, 28), _fan(r, "core", [2.8, 2.6, 2.2], 0.0, 3, 14, 520.0, 0.7)]},
+		{patterns = [_spiral(r, "core", warm, 5, 1.0, 0.085, 0.1), _ring(r, "core", cool, 28), _fan(r, "core", [2.8, 2.6, 2.2], 0.0, 3, 14, 520.0, 0.7)]},
 	]
 	return {
 		id = "daily_%d" % day, day = day, week = n,
@@ -77,18 +77,27 @@ static func _near(parts: Array, x: float, y: float) -> bool:
 			return true
 	return false
 
+# 아래 범위는 scripts/check_daily.gd 기준(iron_whale 최악값)을 넘지 않게 잡았다. 고치면 검사부터 돌릴 것.
 static func _fan(r: RandomNumberGenerator, from: String, c: Array, delay: float, count := 0, spread := 0, speed := 0.0, every := 0.0) -> Dictionary:
-	return {from = from, kind = "fan", count = count if count > 0 else r.randi_range(4, 6), spread = spread if spread > 0 else r.randi_range(28, 44),
-		speed = speed if speed > 0.0 else r.randf_range(300, 360), every = every if every > 0.0 else r.randf_range(1.0, 1.25), aim = true, delay = delay, color = c}
+	var n := count if count > 0 else r.randi_range(4, 5)
+	# 탄 사이 각 9° 이상(옆으로 비킬 틈), 속도 380 이하
+	var sp := spread if spread > 0 else roundi(r.randf_range(9.0, 11.0) * (n - 1))
+	return {from = from, kind = "fan", count = n, spread = sp,
+		speed = speed if speed > 0.0 else r.randf_range(300, 340), every = every if every > 0.0 else r.randf_range(1.2, 1.4), aim = true, delay = delay, color = c}
 
-static func _ring(r: RandomNumberGenerator, from: String, c: Array, count: int) -> Dictionary:
-	return {from = from, kind = "ring", count = count + r.randi_range(-3, 3), speed = r.randf_range(190, 240), every = r.randf_range(1.2, 1.7), spin = r.randf_range(4, 9), color = c}
+# 호 간격(700px 거리) 150 이상 → 최대 28발. 연속 고리 거리 speed×every 228 이상
+static func _ring(r: RandomNumberGenerator, from: String, c: Array, count: int, every_lo := 1.2, every_hi := 1.7) -> Dictionary:
+	return {from = from, kind = "ring", count = count + r.randi_range(-2, 0), speed = r.randf_range(190, 240), every = r.randf_range(every_lo, every_hi), spin = r.randf_range(4, 9), color = c}
 
-static func _spiral(r: RandomNumberGenerator, from: String, c: Array, arms: int, dir := 1.0) -> Dictionary:
-	return {from = from, kind = "spiral", arms = arms, speed = r.randf_range(240, 290), every = r.randf_range(0.08, 0.1), spin_rate = r.randf_range(90, 140) * dir, color = c}
+# 팔 사이 반지름 간격 185 이상이 되도록 회전 속도 상한을 속도·팔 수로 계산
+static func _spiral(r: RandomNumberGenerator, from: String, c: Array, arms: int, dir := 1.0, every_lo := 0.095, every_hi := 0.12) -> Dictionary:
+	var speed := r.randf_range(240, 290)
+	var hi := minf(140.0 if arms < 5 else 110.0, speed * 360.0 / arms / 190.0)
+	return {from = from, kind = "spiral", arms = arms, speed = speed, every = r.randf_range(every_lo, every_hi), spin_rate = r.randf_range(90.0 if arms < 5 else 80.0, hi) * dir, color = c}
 
 # 2단계 포탑: 날마다 나선이거나 빠른 부채꼴
 static func _gun2(r: RandomNumberGenerator, from: String, c: Array, dir: float) -> Dictionary:
 	if r.randf() < 0.6:
 		return _spiral(r, from, c, 3, dir)
-	return _fan(r, from, c, 0.0 if dir > 0 else 0.35, r.randi_range(6, 8), r.randi_range(50, 70), r.randf_range(360, 420), r.randf_range(0.7, 0.85))
+	var n := r.randi_range(5, 7)
+	return _fan(r, from, c, 0.0 if dir > 0 else 0.35, n, roundi(r.randf_range(9.0, 10.5) * (n - 1)), r.randf_range(340, 380), r.randf_range(0.75, 0.9))
