@@ -342,9 +342,12 @@ func _armor_plate() -> Node3D:
 	return n
 
 func _player() -> void:
-	var model: Node3D = load("res://assets/ships/Striker.gltf").instantiate()
+	var model: Node3D = load(main.ship.model).instantiate()
+	var tex: Texture2D = load(main.ship.tex) if main.ship.tex != "" else null  # 같은 모델의 다른 색(Quaternius CC0 색 변형)
 	_recolor(model, func(src: Material) -> Material:
 		var m: StandardMaterial3D = (src as StandardMaterial3D).duplicate() if src is StandardMaterial3D else StandardMaterial3D.new()
+		if tex:
+			m.albedo_texture = tex
 		m.metallic = 0.6
 		m.roughness = 0.35
 		m.rim_enabled = true

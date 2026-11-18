@@ -9,6 +9,10 @@ var vel := PackedVector2Array()
 var rad := PackedFloat32Array()
 var life := PackedFloat32Array()
 var col := PackedColorArray()
+var dmg := PackedFloat32Array()   # 탄마다 피해 배율(기체 무기마다 다름)
+var homing := PackedByteArray()   # 1이면 target 쪽으로 휘어짐
+var target := Vector2.INF
+var orient := false               # 날아가는 방향으로 그림을 눕힘(유도탄·부채꼴 내 탄)
 var next := 0
 var alive_count := 0
 var look := Vector2(2.6, 2.6)   # 그림 크기 = 반지름 × look (판정보다 크게 보이게)
@@ -24,6 +28,8 @@ func setup(capacity: int, tex: Texture2D, look_scale: Vector2, mat: Material = n
 	rad.resize(cap)
 	life.resize(cap)
 	col.resize(cap)
+	dmg.resize(cap)
+	homing.resize(cap)
 	life.fill(0.0)
 	mm = MultiMesh.new()
 	mm.transform_format = MultiMesh.TRANSFORM_2D
@@ -49,15 +55,17 @@ func setup(capacity: int, tex: Texture2D, look_scale: Vector2, mat: Material = n
 		mmi.material = m
 	add_child(mmi)
 
-func spawn(p: Vector2, v: Vector2, r: float, c: Color) -> void:
+func spawn(p: Vector2, v: Vector2, r: float, c: Color, d := 1.0, h := false) -> void:
 	for i in cap:
 		var k := (next + i) % cap
 		if life[k] <= 0.0:
-			_put(k, p, v, r, c)
+			_put(k, p, v, r, c, d, h)
 			return
-	_put(next, p, v, r, c)  # 가득 차면 가장 오래된 자리를 덮어씀
+	_put(next, p, v, r, c, d, h)  # 가득 차면 가장 오래된 자리를 덮어씀
 
-func _put(k: int, p: Vector2, v: Vector2, r: float, c: Color) -> void:
+func _put(k: int, p: Vector2, v: Vector2, r: float, c: Color, d := 1.0, h := false) -> void:
+	dmg[k] = d
+	homing[k] = 1 if h else 0
 	pos[k] = p
 	vel[k] = v
 	rad[k] = r
@@ -77,6 +85,9 @@ func update(dt: float) -> void:
 				buf[o] = 0.0
 				buf[o + 5] = 0.0
 			continue
+		if homing[k] and target != Vector2.INF:
+			var sp := vel[k].length()
+			vel[k] = vel[k].lerp((target - pos[k]).normalized() * sp, 1.0 - pow(0.004, dt)).normalized() * sp
 		var p := pos[k] + vel[k] * dt
 		pos[k] = p
 		life[k] -= dt
@@ -88,11 +99,18 @@ func update(dt: float) -> void:
 		n += 1
 		var r := rad[k]
 		var c := col[k]
-		buf[o] = r * look.x
-		buf[o + 1] = 0.0
+		if orient:
+			var n2 := vel[k].normalized()  # 그림의 세로축을 진행 방향으로(위로 나는 탄은 그대로)
+			buf[o] = -n2.y * r * look.x
+			buf[o + 1] = -n2.x * r * look.y
+			buf[o + 4] = n2.x * r * look.x
+			buf[o + 5] = -n2.y * r * look.y
+		else:
+			buf[o] = r * look.x
+			buf[o + 1] = 0.0
+			buf[o + 4] = 0.0
+			buf[o + 5] = r * look.y
 		buf[o + 3] = p.x
-		buf[o + 4] = 0.0
-		buf[o + 5] = r * look.y
 		buf[o + 7] = p.y
 		buf[o + 8] = c.r
 		buf[o + 9] = c.g

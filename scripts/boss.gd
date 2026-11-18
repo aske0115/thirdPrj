@@ -196,6 +196,21 @@ func _part_by_id(id: String) -> Part:
 			return p
 	return null
 
+# 유도탄 목표: 지금 맞을 수 있는 큰 부위(장갑·포탑·핵) 중 가까운 곳, 없으면 해체 타일
+func aim_point(from: Vector2) -> Vector2:
+	var best := Vector2.INF
+	var bd := INF
+	for pass_skin in [false, true]:
+		for p in parts:
+			if vulnerable(p) and (p.group == "skin") == pass_skin:
+				var d := part_world(p).distance_squared_to(from)
+				if d < bd:
+					bd = d
+					best = part_world(p)
+		if best != Vector2.INF:
+			return best
+	return best
+
 # 내 탄이 부위에 맞았는지 처리. 피해를 준 총량을 돌려줌.
 func take_hits(shots: Bullets, dmg: float) -> float:
 	if dead or entering > 0.0:
@@ -213,10 +228,11 @@ func take_hits(shots: Bullets, dmg: float) -> float:
 				continue
 			shots.kill(k)
 			if vulnerable(p):
-				p.hp -= dmg
+				var d := dmg * shots.dmg[k]  # 기체 무기마다 탄 한 발 피해가 다름
+				p.hp -= d
 				p.flash = 1.0
-				dealt += dmg
-				part_hit.emit(bp, dmg, false)
+				dealt += d
+				part_hit.emit(bp, d, false)
 				if p.hp <= 0.0:
 					_break(p)
 			else:

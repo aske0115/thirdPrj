@@ -134,7 +134,8 @@ func ring(at: Vector2, radius: float, c: Color, dur := 0.45, width := 10.0) -> v
 	l.points = pts
 	l.width = width / 10.0
 	l.width_curve = null
-	l.default_color = c
+	var m := maxf(1.0, maxf(c.r, maxf(c.g, c.b)))  # 2D 빛 번짐을 끈 뒤 HDR 색이 노란 띠로 뭉개지지 않게 0~1로 + 반투명
+	l.default_color = Color(c.r / m, c.g / m, c.b / m, 0.5)
 	l.position = at
 	l.z_index = 12
 	l.scale = Vector2.ONE * 10.0

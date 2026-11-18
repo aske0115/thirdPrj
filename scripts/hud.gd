@@ -3,6 +3,7 @@ class_name Hud
 extends CanvasLayer
 
 signal retry
+signal ship_pressed(id: String)
 
 var font: Font
 var font_en: Font
@@ -16,6 +17,8 @@ var card: Label
 var panel: PanelContainer
 var panel_lbl: Label
 var flash: ColorRect
+var ship_row: HBoxContainer
+var ship_info: Label
 
 func _ready() -> void:
 	font = load("res://assets/fonts/BlackHanSans-Regular.ttf")
@@ -138,6 +141,15 @@ func _ready() -> void:
 	panel_lbl = _lbl("", 34)
 	panel_lbl.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	v.add_child(panel_lbl)
+	# 기체 고르기·언락 줄(결과 창에서 다음 판 기체를 정함)
+	ship_info = _lbl("", 20)
+	ship_info.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	ship_info.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	ship_info.add_theme_color_override("font_color", Color(0.7, 0.9, 1.0))
+	v.add_child(ship_info)
+	ship_row = HBoxContainer.new()
+	ship_row.add_theme_constant_override("separation", 8)
+	v.add_child(ship_row)
 	var b := Button.new()
 	b.text = Main.L("다시 도전", "Retry")
 	b.custom_minimum_size.y = 96
@@ -178,6 +190,36 @@ func show_card(text: String) -> void:
 func flash_screen(c: Color, a: float) -> void:
 	flash.color = Color(c.r, c.g, c.b, a)
 	create_tween().tween_property(flash, "color:a", 0.0, 0.22)
+
+func set_ships(items: Array, info: String) -> void:
+	ship_info.text = info
+	for c in ship_row.get_children():
+		c.queue_free()
+	for it in items:
+		var b := Button.new()
+		b.text = it.text
+		b.custom_minimum_size = Vector2(0, 84)
+		b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+		b.add_theme_font_size_override("font_size", 20)
+		var sb := StyleBoxFlat.new()
+		sb.set_corner_radius_all(14)
+		if it.selected:
+			sb.bg_color = Color(0.1, 0.35, 0.45)
+			sb.border_color = Color(0.5, 1.0, 1.0)
+			sb.set_border_width_all(3)
+		elif it.locked:
+			sb.bg_color = Color(0.12, 0.1, 0.18) if it.afford else Color(0.08, 0.07, 0.12)
+			sb.border_color = Color(1.0, 0.8, 0.3) if it.afford else Color(0.3, 0.3, 0.4)
+			sb.set_border_width_all(2)
+		else:
+			sb.bg_color = Color(0.12, 0.16, 0.26)
+		b.add_theme_stylebox_override("normal", sb)
+		b.add_theme_stylebox_override("hover", sb)
+		b.add_theme_stylebox_override("pressed", sb)
+		b.add_theme_color_override("font_color", Color(1, 1, 1) if not it.locked or it.afford else Color(0.55, 0.55, 0.65))
+		var id: String = it.id
+		b.pressed.connect(func(): ship_pressed.emit(id))
+		ship_row.add_child(b)
 
 func show_result(text: String) -> void:
 	panel_lbl.text = text

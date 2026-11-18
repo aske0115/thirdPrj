@@ -1,5 +1,5 @@
 # 진입점: 장면을 코드로 짓고, 입력(손가락 그대로 따라감)·판 흐름·손맛(히트스톱·흔들림·진동)·자동 플레이·화면 저장을 맡는다.
-# 실행 인자(-- 뒤): --auto(자동 플레이) --god(시험용 무적) --shot=경로 --shot-at=초 --quit-at=초 --lang=en --boss=iron_whale
+# 실행 인자(-- 뒤): --auto(자동 플레이) --god(시험용 무적) --ship=id --result(결과 창 바로) --shot=경로 --shot-at=초 --quit-at=초 --lang=en --boss=iron_whale
 class_name Main
 extends Node2D
 
@@ -18,6 +18,9 @@ var fx: Fx
 var hud: Hud
 var view: View3D
 var day := 0
+var ship: Dictionary
+var save: ConfigFile
+var run_gems := 0
 var skin_sound_t := 0.0
 var score := 0
 var shake := 0.0
@@ -88,8 +91,14 @@ func _ready() -> void:
 	boss.phase_changed.connect(_on_phase)
 	boss.defeated.connect(_on_defeated)
 	boss.part_hit.connect(_on_part_hit)
+	save = Ships.load_save()
+	ship = Ships.get_ship(args.get("ship", save.get_value("ships", "selected", "striker")))
 	player = Player.new()
 	player.shots = shots
+	player.weapon = ship.weapon
+	var sc: Array = ship.shot
+	player.shot_col = Color(sc[0], sc[1], sc[2], 0.45)
+	shots.orient = ship.weapon in ["spread", "homing"]
 	player.position = Vector2(360, 1060)
 	player.z_index = 6
 	add_child(player)
@@ -107,7 +116,8 @@ func _ready() -> void:
 	fx = Fx.new()
 	add_child(fx)
 	fx.setup(hud.font_en, dot)
-	fx.gem_collected.connect(func(n): if not over: score += n * 10)
+	fx.gem_collected.connect(_on_gems)
+	hud.ship_pressed.connect(_on_ship_pressed)
 	# 켜자마자: 경고 + 보스 등장(결정 007 — 첫 화면부터 터지게)
 	var nm: Dictionary = boss.data["name"]
 	var intro: Dictionary = boss.data["intro"]
@@ -120,6 +130,11 @@ func _ready() -> void:
 	shake = 0.9
 	get_tree().create_timer(1.0).timeout.connect(func(): hud.show_card("%s\n%s" % [nm[lang] if nm.has(lang) else nm["en"], intro[lang] if intro.has(lang) else intro["en"]]))
 	lives_text()
+	if args.has("result"):  # 시험용: 결과 창(기체 고르기 줄)을 바로 띄움
+		get_tree().create_timer(0.6).timeout.connect(func():
+			over = true
+			hud.show_result(L("시험 결과", "Test result"))
+			_record(score))
 
 func _dot_texture() -> Texture2D:
 	var g := Gradient.new()
@@ -154,6 +169,8 @@ func _process(delta: float) -> void:
 	if auto and not over:
 		player.position = Vector2(360 + sin(t * 1.3) * 240.0, 1060 + sin(t * 0.7) * 60.0)
 	boss.player_pos = player.position
+	if ship.weapon == "homing":
+		shots.target = boss.aim_point(player.position)
 	boss.update(delta)
 	player.update(delta, not over and t > 0.35)
 	enemy.update(delta)
@@ -255,7 +272,7 @@ func _on_defeated(at: Vector2) -> void:
 	await get_tree().create_timer(1.6).timeout
 	var nm: Dictionary = boss.data["name"]
 	var best := _record(score)
-	hud.show_result(L("오늘의 보스 #%d\n%s 격파!\n\n점수 %d\n오늘 최고 %d\n시간 %.1f초\n\n내일은 새 보스가 와요", "Daily Boss #%d\n%s down!\n\nScore %d\nToday's best %d\nTime %.1fs\n\nA new boss arrives tomorrow") % [int(boss.data["week"]), nm[lang] if nm.has(lang) else nm["en"], score, best, t])
+	hud.show_result(L("오늘의 보스 #%d\n%s 격파!\n\n점수 %d\n오늘 최고 %d\n시간 %.1f초\n보석 +%d\n내일은 새 보스가 와요", "Daily Boss #%d\n%s down!\n\nScore %d\nToday's best %d\nTime %.1fs\nGems +%d\nA new boss arrives tomorrow") % [int(boss.data["week"]), nm[lang] if nm.has(lang) else nm["en"], score, best, t, run_gems])
 	print("RESULT win time=%.1f score=%d lives=%d" % [t, score, player.lives])
 
 func _player_hit() -> void:
@@ -279,11 +296,51 @@ func _player_hit() -> void:
 		over = true
 		player.visible = false
 		var best := _record(score)
-		hud.show_result(L("격추당했어요\n\n보스 체력 %d%% 남음\n점수 %d\n오늘 최고 %d", "Shot down\n\nBoss HP left %d%%\nScore %d\nToday's best %d") % [int(boss.hp_fraction() * 100), score, best])
+		hud.show_result(L("격추당했어요\n\n보스 체력 %d%% 남음\n점수 %d\n오늘 최고 %d\n보석 +%d", "Shot down\n\nBoss HP left %d%%\nScore %d\nToday's best %d\nGems +%d") % [int(boss.hp_fraction() * 100), score, best, run_gems])
 		print("RESULT lose time=%.1f score=%d boss=%.2f" % [t, score, boss.hp_fraction()])
+
+func _on_gems(n: int) -> void:
+	if over:
+		return
+	score += n * 10
+	run_gems += n
+
+# 결과 창의 기체 줄: 가진 기체는 고르기, 없는 기체는 보석으로 언락
+func _refresh_ships() -> void:
+	var have := Ships.owned(save)
+	var gems := int(save.get_value("ships", "gems", 0))
+	var sel: String = save.get_value("ships", "selected", "striker")
+	var items := []
+	for s2 in Ships.LIST:
+		var own: bool = s2.id in have
+		var txt := Ships.label(s2) + "\n" + (L("장착 중", "Equipped") if s2.id == sel else (L("고르기", "Select") if own else L("보석 %d", "%d gems") % s2.price))
+		items.append({id = s2.id, text = txt, selected = s2.id == sel, locked = not own, afford = gems >= s2.price})
+	var cur := Ships.get_ship(sel)
+	hud.set_ships(items, L("보유 보석 %d  ·  %s: %s", "Gems %d  ·  %s: %s") % [gems, Ships.label(cur), cur.desc_ko if lang == "ko" else cur.desc_en])
+
+func _on_ship_pressed(id: String) -> void:
+	var s2 := Ships.get_ship(id)
+	var have := Ships.owned(save)
+	var gems := int(save.get_value("ships", "gems", 0))
+	if not id in have:
+		if gems < s2.price:
+			hud.show_banner(L("보석이 모자라요", "Not enough gems"), Color(1.0, 0.6, 0.5), 0.5)
+			return
+		save.set_value("ships", "gems", gems - s2.price)
+		have.append(id)
+		save.set_value("ships", "owned", have)
+		hud.show_banner(L("새 기체 %s!", "New ship: %s!") % Ships.label(s2), Color(0.6, 2.2, 2.6), 0.9)
+		fx.play("glass", 1.4, -4.0)
+	save.set_value("ships", "selected", id)
+	save.save(Ships.SAVE)
+	_refresh_ships()
 
 # 기기 안에 날짜별 최고 기록·도전 횟수 저장(1단계 — 순위표는 2단계 Firebase). 최고 기록을 돌려줌.
 func _record(sc: int) -> int:
+	if not args.has("auto"):
+		save.set_value("ships", "gems", int(save.get_value("ships", "gems", 0)) + run_gems)
+		save.save(Ships.SAVE)
+	_refresh_ships.call_deferred()
 	if args.has("auto"):
 		return sc
 	var cf := ConfigFile.new()

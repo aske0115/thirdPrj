@@ -10,6 +10,8 @@ var shots: Bullets
 var core: Node2D
 var body: Node2D
 var muzzle := 0
+var weapon := "triple"
+var shot_col := Color(0.45, 1.3, 2.0, 0.45)
 
 func _ready() -> void:
 	body = Node2D.new()
@@ -50,10 +52,25 @@ func update(dt: float, firing: bool) -> void:
 		return
 	fire_t -= dt
 	if fire_t <= 0.0:
-		fire_t += 1.0 / 16.0
 		muzzle += 1
 		var p := position + Vector2(0, -40)
-		var c := Color(0.45, 1.3, 2.0, 0.45)  # 내 탄은 반투명·덜 밝게 — 적탄이 늘 더 튀어야 피할 탄이 보임
-		shots.spawn(p, Vector2(0, -1700), 6.0, c)
-		shots.spawn(p + Vector2(-18, 14), Vector2(-90, -1650), 5.0, c)
-		shots.spawn(p + Vector2(18, 14), Vector2(90, -1650), 5.0, c)
+		var c := shot_col  # 내 탄은 반투명·덜 밝게 — 적탄이 늘 더 튀어야 피할 탄이 보임
+		match weapon:
+			"spread":  # 다섯 갈래 부채: 넓게 맞혀 장갑 타일을 많이 벗김, 한 발은 약함
+				fire_t += 1.0 / 13.0
+				for j in 5:
+					var a := deg_to_rad(-90.0 + (j - 2) * 11.0)
+					shots.spawn(p, Vector2.from_angle(a) * 1550.0, 5.0, c, 0.75)
+			"lance":  # 굵은 한 줄기: 가운데 한 곳에 몰아 줌
+				fire_t += 1.0 / 22.0
+				shots.spawn(p, Vector2(0, -2100), 9.0, c, 2.3)
+			"homing":  # 날개에서 유도 미사일 2발 + 가운데 약한 직선탄
+				fire_t += 1.0 / 9.0
+				for side in [-1, 1]:
+					shots.spawn(position + Vector2(30 * side, -10), Vector2(260 * side, -900), 6.0, c, 2.0, true)
+				shots.spawn(p, Vector2(0, -1700), 4.0, c, 0.6)
+			_:  # triple: 세 갈래 연사
+				fire_t += 1.0 / 16.0
+				shots.spawn(p, Vector2(0, -1700), 6.0, c)
+				shots.spawn(p + Vector2(-18, 14), Vector2(-90, -1650), 5.0, c)
+				shots.spawn(p + Vector2(18, 14), Vector2(90, -1650), 5.0, c)

@@ -3,7 +3,9 @@
 # 시험: 실행 인자 --day=20261118
 class_name Daily
 
-const EPOCH := 20261118  # 오늘의 보스 #1
+const EPOCH := 20261118
+const EASE_SPEED := 0.85
+const EASE_EVERY := 1.2  # 오늘의 보스 #1
 
 const ADJ := [["강철", "Iron"], ["붉은", "Crimson"], ["잠든", "Sleeping"], ["성난", "Raging"], ["녹슨", "Rusted"],
 	["번개", "Thunder"], ["얼어붙은", "Frozen"], ["검은", "Black"], ["황금", "Golden"], ["울부짖는", "Howling"]]
@@ -63,6 +65,13 @@ static func make(day: int) -> Dictionary:
 		{patterns = [_gun2(r, "gun_l", warm, 1.0), _gun2(r, "gun_r", warm, -1.0), _fan(r, "core", cool, 0.0, 9, 70)]},
 		{patterns = [_spiral(r, "core", warm, 5, 1.0, 0.085, 0.1), _ring(r, "core", cool, 28), _fan(r, "core", [2.8, 2.6, 2.2], 0.0, 3, 14, 520.0, 0.7)]},
 	]
+	# 사람 기준 난이도(실기기 판정 "피하기 까다롭다"): 탄 속도 85%, 발사 간격 1.2배 → 화면 탄 수 약 30% 감소
+	for ph in phases:
+		for pat in ph.patterns:
+			pat.speed = float(pat.speed) * EASE_SPEED
+			pat.every = float(pat.every) * EASE_EVERY
+			if pat.has("spin_rate"):  # 탄이 느려진 만큼 회전도 늦춰야 나선 사이 간격이 유지됨
+				pat.spin_rate = float(pat.spin_rate) * EASE_SPEED
 	return {
 		id = "daily_%d" % day, day = day, week = n,
 		name = {ko = "%s %s" % [adj[0], noun[0]], en = "%s %s" % [adj[1], noun[1]]},
