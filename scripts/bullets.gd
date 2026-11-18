@@ -32,6 +32,9 @@ func setup(capacity: int, tex: Texture2D, look_scale: Vector2, mat: Material = n
 	q.size = Vector2.ONE
 	mm.mesh = q
 	mm.instance_count = cap
+	# 그리기 범위를 화면 전체로 고정: 매 프레임 버퍼를 바꾸면 범위 재계산이 늦어, 흔들림(카메라 이동) 순간
+	# 묶음 전체가 화면 밖으로 잘못 판정돼 탄이 통째로 사라졌다 나타남(실기기 녹화로 확인한 깜빡임)
+	mm.custom_aabb = AABB(Vector3(-400, -400, -1), Vector3(1600, 2400, 2))
 	buf.resize(cap * STRIDE)
 	buf.fill(0.0)
 	mm.buffer = buf

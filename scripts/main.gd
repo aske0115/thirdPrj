@@ -315,6 +315,8 @@ func _debug(dt: float) -> void:
 		await RenderingServer.frame_post_draw
 		get_viewport().get_texture().get_image().save_png(args["shot"])
 		print("SHOT ", args["shot"], " window=", DisplayServer.window_get_position(), DisplayServer.window_get_size(), " screen=", DisplayServer.window_get_current_screen())
+	if auto and dt > 0.03:  # 프레임 튐(실기기 깜빡임 조사용) — 히트스톱과 무관하게 실제 시간 기준
+		print("SPIKE t=%.2f ms=%d ts=%.2f" % [t, int(dt * 1000.0), Engine.time_scale])
 	if auto:
 		stats_t += dt
 		if stats_t >= 1.0:

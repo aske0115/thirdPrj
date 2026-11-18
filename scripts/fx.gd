@@ -40,6 +40,7 @@ func setup(f: Font, dot: Texture2D) -> void:
 	q.size = Vector2.ONE
 	gem_mm.mesh = q
 	gem_mm.instance_count = GEM_CAP
+	gem_mm.custom_aabb = AABB(Vector3(-400, -400, -1), Vector3(1600, 2400, 2))  # bullets.gd와 같은 이유(깜빡임 방지)
 	gem_buf.resize(GEM_CAP * 12)
 	gem_buf.fill(0.0)
 	var gmi := MultiMeshInstance2D.new()
