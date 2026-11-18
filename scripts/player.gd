@@ -43,10 +43,8 @@ func move_by(d: Vector2) -> void:
 
 func update(dt: float, firing: bool) -> void:
 	if invuln > 0.0:
-		invuln -= dt
-		visible = int(invuln * 20.0) % 2 == 0
-	else:
-		visible = true
+		invuln -= dt  # 무적 중 켜졌다 꺼졌다 하면 깜빡여 보임(실기기 판정) → 3D 보호막이 부드럽게 표시(view3d.gd)
+	visible = true
 	body.position.y = sin(Time.get_ticks_msec() * 0.01) * 1.5
 	if not firing:
 		return

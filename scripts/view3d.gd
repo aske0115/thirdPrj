@@ -20,6 +20,7 @@ var ship: Node3D
 var ship_w := 0.0
 var ship_prev_x := 360.0
 var bank := 0.0
+var shield: MeshInstance3D
 var moving: Array[Dictionary] = []
 const BLEED := 24.0  # 3D 층을 화면보다 사방 24px 크게 — 흔들려도 가장자리 빈 바탕이 안 비치게
 var flash: OmniLight3D
@@ -351,6 +352,9 @@ func _player() -> void:
 		m.rim_tint = 0.3
 		return m)
 	ship = _wrap(model, 180.0)  # 기수가 보스 쪽
+	shield = _glow_quad(1.6, Color(0.25, 0.6, 1.0), ship)  # 맞은 뒤 무적 동안 부드럽게 맥동하는 보호막
+	(shield.material_override as ShaderMaterial).set_shader_parameter("core_amt", 0.0)
+	shield.visible = false
 	ship_w = 96.0
 	for s in [-0.2, 0.2]:
 		var g := _glow_quad(0.5, Color(0.4, 1.0, 2.2), ship)
@@ -428,6 +432,10 @@ func sync(dt: float) -> void:
 	ship.visible = main.player.visible
 	_place(ship, pp + Vector2(0, 6), ship_w, 1.0)
 	ship.rotation.z = bank
+	var inv := main.player.invuln
+	shield.visible = inv > 0.0
+	if inv > 0.0:
+		shield.scale = Vector3.ONE * (1.0 + 0.08 * sin(b.t * 10.0)) * clampf(inv * 2.0, 0.3, 1.0)
 	for i in range(moving.size() - 1, -1, -1):
 		var m2: Dictionary = moving[i]
 		var n2: Node3D = m2.node

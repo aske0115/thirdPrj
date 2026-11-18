@@ -266,14 +266,14 @@ func _player_hit() -> void:
 	lives_text()
 	hitstop(0.12)
 	shake = 1.4
-	hud.flash_screen(Color(1, 0.1, 0.1), 0.08)
 	fx.burst("spark", player.position, 1.4)
-	fx.ring(player.position, 90.0, Color(2.8, 0.6, 0.5), 0.35, 8.0)
+	fx.ring(player.position, 260.0, Color(1.6, 2.2, 2.8), 0.45, 10.0)  # 지워지는 범위를 보여 주는 충격파(탄이 갑자기 사라져 보이지 않게)
 	fx.play("thud", 0.7, 4.0)
 	_vibrate(120, 1.0)
-	# 맞으면 주변 적탄을 지워 숨 돌릴 틈
+	# 맞으면 주변 적탄을 보석으로 바꿔 숨 돌릴 틈(그냥 지우면 깜빡여 보임)
 	for k in enemy.cap:
 		if enemy.life[k] > 0.0 and enemy.pos[k].distance_to(player.position) < 260.0:
+			fx.spawn_gems(enemy.pos[k], 1, 40.0)
 			enemy.kill(k)
 	if player.lives <= 0:
 		over = true
