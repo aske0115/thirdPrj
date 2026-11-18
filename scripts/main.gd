@@ -17,6 +17,8 @@ var shots: Bullets
 var fx: Fx
 var hud: Hud
 var view: View3D
+var day := 0
+var skin_sound_t := 0.0
 var score := 0
 var shake := 0.0
 var hitstop_on := false
@@ -38,6 +40,16 @@ func _ready() -> void:
 		args[kv[0]] = kv[1] if kv.size() > 1 else "1"
 	lang = args.get("lang", "ko" if OS.get_locale_language() == "ko" else "en")
 	auto = args.has("auto")
+	if args.has("shot"):
+		# 촬영용: 창은 손톱만 하게 마지막 모니터 오른쪽 아래 구석에(사용자 작업 화면을 가리지 않게),
+		# 그림은 창 크기와 무관하게 기준 해상도(가로 720)로 렌더해서 저장
+		var w := get_window()
+		w.content_scale_mode = Window.CONTENT_SCALE_MODE_VIEWPORT
+		w.content_scale_aspect = Window.CONTENT_SCALE_ASPECT_KEEP  # 창이 어떤 모양이든 720×1280으로
+		w.borderless = true
+		w.size = Vector2i(36, 78)
+		var sc := DisplayServer.get_screen_count() - 1
+		w.position = DisplayServer.screen_get_position(sc) + DisplayServer.screen_get_size(sc) - w.size
 	var env := Environment.new()
 	env.background_mode = Environment.BG_CANVAS
 	env.glow_enabled = true
@@ -64,7 +76,12 @@ func _ready() -> void:
 	boss = Boss.new()
 	add_child(boss)
 	boss.enemy = enemy
-	boss.load_boss("res://content/bosses/%s.json" % args.get("boss", "iron_whale"))
+	# 기본은 오늘의 보스(결정 009 A). --boss=iron_whale 로 손으로 만든 보스, --day=YYYYMMDD 로 다른 날 보스.
+	day = int(args.get("day", str(Daily.today())))
+	if args.has("boss"):
+		boss.load_boss("res://content/bosses/%s.json" % args["boss"])
+	else:
+		boss.load_data(Daily.make(day))
 	boss.part_broken.connect(_on_part_broken)
 	boss.phase_changed.connect(_on_phase)
 	boss.defeated.connect(_on_defeated)
@@ -92,8 +109,9 @@ func _ready() -> void:
 	# 켜자마자: 경고 + 보스 등장(결정 007 — 첫 화면부터 터지게)
 	var nm: Dictionary = boss.data["name"]
 	var intro: Dictionary = boss.data["intro"]
-	hud.boss_name.text = L("%d주차  %s" % [int(boss.data["week"]), nm["ko"]], "WEEK %d  %s" % [int(boss.data["week"]), nm["en"]])
-	hud.sub.text = "WEEK %02d  ·  %s" % [int(boss.data["week"]), String(nm["en"]).to_upper()]
+	var daily := not args.has("boss")
+	hud.boss_name.text = ("#%d  " % int(boss.data["week"])) + (nm["ko"] if lang == "ko" else nm["en"])
+	hud.sub.text = ("DAILY BOSS #%d  ·  %s" if daily else "WEEK %02d  ·  %s") % [int(boss.data["week"]), String(nm["en"]).to_upper()]
 	hud.show_banner("WARNING", Color(2.6, 0.4, 0.3), 0.7)
 	hud.flash_screen(Color(1, 0.1, 0.05), 0.35)
 	fx.play("warn", 1.0, -6.0)
@@ -156,6 +174,7 @@ func _process(delta: float) -> void:
 		fx.number(num_at, int(num_acc * 5.0), false)
 		num_acc = 0.0
 	hit_sound_t -= real_dt
+	skin_sound_t -= real_dt
 	_debug(real_dt)
 
 func _on_part_hit(at: Vector2, amount: float, armored: bool) -> void:
@@ -171,8 +190,20 @@ func _on_part_hit(at: Vector2, amount: float, armored: bool) -> void:
 		fx.play("shot", randf_range(0.9, 1.2), -16.0)
 
 func _on_part_broken(p: Boss.Part, at: Vector2) -> void:
-	var big := p.group != "armor"
 	view.part_broken(p, at)
+	if p.group == "skin":
+		# 해체 타일(결정 009 C): 작게·자주 터지는 손맛 — 히트스톱 없이 짧은 흔들림과 금속 소리
+		shake = maxf(shake, 0.28)
+		fx.burst("spark", at, 0.7)
+		fx.shatter(at, p.r, Color(0.32, 0.34, 0.46), 4)
+		fx.spawn_gems(at, 2, 120.0)
+		score += 50
+		if skin_sound_t <= 0.0:
+			skin_sound_t = 0.05
+			fx.play("metal", randf_range(1.4, 1.7), -12.0)
+		_vibrate(8, 0.3)
+		return
+	var big := p.group != "armor"
 	hitstop(0.09 if big else 0.06)
 	shake = maxf(shake, 1.0 if big else 0.7)
 	hud.flash_screen(Color(1, 0.9, 0.7), 0.35 if big else 0.22)
@@ -221,7 +252,8 @@ func _on_defeated(at: Vector2) -> void:
 	hud.show_banner(L("격파!", "DEFEATED!"), Color(2.8, 2.2, 0.8), 1.2)
 	await get_tree().create_timer(1.6).timeout
 	var nm: Dictionary = boss.data["name"]
-	hud.show_result(L("%s 격파!\n\n점수 %d\n시간 %.1f초", "%s down!\n\nScore %d\nTime %.1fs") % [nm[lang] if nm.has(lang) else nm["en"], score, t])
+	var best := _record(score)
+	hud.show_result(L("오늘의 보스 #%d\n%s 격파!\n\n점수 %d\n오늘 최고 %d\n시간 %.1f초\n\n내일은 새 보스가 와요", "Daily Boss #%d\n%s down!\n\nScore %d\nToday's best %d\nTime %.1fs\n\nA new boss arrives tomorrow") % [int(boss.data["week"]), nm[lang] if nm.has(lang) else nm["en"], score, best, t])
 	print("RESULT win time=%.1f score=%d lives=%d" % [t, score, player.lives])
 
 func _player_hit() -> void:
@@ -244,8 +276,22 @@ func _player_hit() -> void:
 	if player.lives <= 0:
 		over = true
 		player.visible = false
-		hud.show_result(L("격추당했어요\n\n보스 체력 %d%% 남음\n점수 %d", "Shot down\n\nBoss HP left %d%%\nScore %d") % [int(boss.hp_fraction() * 100), score])
+		var best := _record(score)
+		hud.show_result(L("격추당했어요\n\n보스 체력 %d%% 남음\n점수 %d\n오늘 최고 %d", "Shot down\n\nBoss HP left %d%%\nScore %d\nToday's best %d") % [int(boss.hp_fraction() * 100), score, best])
 		print("RESULT lose time=%.1f score=%d boss=%.2f" % [t, score, boss.hp_fraction()])
+
+# 기기 안에 날짜별 최고 기록·도전 횟수 저장(1단계 — 순위표는 2단계 Firebase). 최고 기록을 돌려줌.
+func _record(sc: int) -> int:
+	if args.has("auto"):
+		return sc
+	var cf := ConfigFile.new()
+	cf.load("user://daily.cfg")
+	var key := str(day)
+	var best := maxi(int(cf.get_value(key, "best", 0)), sc)
+	cf.set_value(key, "best", best)
+	cf.set_value(key, "tries", int(cf.get_value(key, "tries", 0)) + 1)
+	cf.save("user://daily.cfg")
+	return best
 
 func hitstop(d: float) -> void:
 	if hitstop_on:
@@ -266,7 +312,7 @@ func _debug(dt: float) -> void:
 		shot_done = true
 		await RenderingServer.frame_post_draw
 		get_viewport().get_texture().get_image().save_png(args["shot"])
-		print("SHOT ", args["shot"])
+		print("SHOT ", args["shot"], " window=", DisplayServer.window_get_position(), DisplayServer.window_get_size(), " screen=", DisplayServer.window_get_current_screen())
 	if auto:
 		stats_t += dt
 		if stats_t >= 1.0:

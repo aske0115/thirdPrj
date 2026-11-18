@@ -38,7 +38,10 @@ var edge_col: Color
 var total_hp := 0.0
 
 func load_boss(path: String) -> void:
-	data = JSON.parse_string(FileAccess.get_file_as_string(path))
+	load_data(JSON.parse_string(FileAccess.get_file_as_string(path)))
+
+func load_data(d: Dictionary) -> void:
+	data = d
 	var hc: Array = data["hull_color"]
 	var ec: Array = data["edge_color"]
 	hull_col = Color(hc[0], hc[1], hc[2])
@@ -55,7 +58,8 @@ func load_boss(path: String) -> void:
 		p.r = pd["r"]
 		p.hp = pd["hp"]
 		p.max_hp = p.hp
-		total_hp += p.hp
+		if p.group != "skin":  # 해체 타일은 보스 체력 바에 넣지 않음(덤으로 벗기는 재미)
+			total_hp += p.hp
 		p.node = _make_part(p)
 		add_child(p.node)
 		parts.append(p)
@@ -124,7 +128,7 @@ func part_world(p: Part) -> Vector2:
 	return global_position + p.offset
 
 func vulnerable(p: Part) -> bool:
-	return p.alive and p.phase == phase and entering <= 0.0
+	return p.alive and (p.phase == phase or p.phase == 0) and entering <= 0.0  # phase 0 = 해체 타일, 언제든 벗겨짐
 
 func update(dt: float) -> void:
 	if dead:
@@ -240,6 +244,6 @@ func _break(p: Part) -> void:
 func hp_fraction() -> float:
 	var s := 0.0
 	for p in parts:
-		if p.alive:
+		if p.alive and p.group != "skin":
 			s += p.hp
 	return s / total_hp

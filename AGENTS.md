@@ -12,7 +12,7 @@
 
 ## 기술
 - **Godot 4.7.2**(결정 003), 렌더러 `mobile`, 언어 GDScript. 장면은 코드로 짓고(`scripts/main.gd`가 진입점) `.tscn`은 최소로 둡니다.
-- 실행·확인 명령은 `docs/SETUP.md`. 봇 자동 플레이·화면 저장: `godot --path . -- --bot --shot=/절대경로.png --shot-at=20 --quit-at=30`.
+- 실행·확인 명령은 `docs/SETUP.md`. 자동 플레이·화면 저장: `godot --path . --screen 1 --resolution 36x78 -- --auto --god --shot=/절대경로.png --shot-at=12 --quit-at=13`(**`--shot`이면 창은 노트북 구석에 손톱만 하게** — 사용자 작업 화면에 큰 창을 띄우지 않기).
 
 ## 대화·문서 언어
 - 사용자와의 대화, 커밋 메시지, 문서, 코드 주석은 **한국어(존댓말)**. 코드 식별자·명령어·경로만 영어.
@@ -36,7 +36,7 @@
 |---|---|---|
 | 기획 `planner` | `docs/GDD.md`, `docs/DECISIONS.md`, `docs/TODO.md`, `docs/HANDOFF.md`, `docs/worklogs/` | 이전 결정과 충돌 없는지 |
 | 난이도 `balance` | `scripts/tuning.gd`(수치 모음) | 봇: `godot --headless --path . -- --bot --quit-at=125`가 찍는 `STATS`·`RESULT` 줄 비교 |
-| 디자인 `design` | `shaders/`, `scripts/fx.gd`, `scripts/hud.gd`, `assets/`·`docs/ASSETS.md` | `--shot`으로 화면 저장(창이 잠깐 뜸) |
+| 디자인 `design` | `shaders/`, `scripts/fx.gd`, `scripts/hud.gd`, `assets/`·`docs/ASSETS.md` | `--screen 1`로 `--shot` 화면 저장 |
 | 광고 `ads` | (출시 단계에 추가) | — |
 | 배포 `release` | `export_presets.cfg`, `ios.sh`, 출시 문서, 개발자 사이트 `~/Projects/daeun-site`의 이 앱 처리방침(그 저장소 AGENTS.md) | `./ios.sh`, `docs/SETUP.md`의 내보내기 명령 |
 | 마케팅 `marketing` | (출시 단계에 영상 저장소를 정해 추가) | — |

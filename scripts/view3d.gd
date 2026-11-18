@@ -47,6 +47,8 @@ func setup(m: Main) -> void:
 func _fit_size() -> void:
 	vis = get_viewport().get_visible_rect().size
 	var ws := Vector2(get_window().size)
+	if get_window().content_scale_mode == Window.CONTENT_SCALE_MODE_VIEWPORT:
+		ws = vis * 1.5  # 촬영 모드: 창이 아주 작아도 3D는 선명하게
 	vp.size = Vector2i(ws * minf(1.0, 1600.0 / ws.y))
 	sprite.scale = vis / Vector2(vp.size)
 
@@ -247,18 +249,45 @@ func _boss() -> void:
 				var tur: Node3D = load("res://assets/kenney-space/turret_double.glb").instantiate()
 				mat = dark_metal.duplicate()
 				mat.emission_enabled = true  # 맞을 때 번쩍임용 — 미리 켜 둬야 첫 피격에 셰이더 재컴파일로 끊기지 않음
-				mat.emission = Color(1, 0.9, 0.8)
+				mat.emission = Color(1.0, 0.5, 0.2)
 				mat.emission_energy_multiplier = 0.0
 				_recolor(tur, func(_s: Material) -> Material: return mat)
 				n = _wrap(tur, 180.0)
 				var g2 := _glow_quad(0.8, Color(1.8, 0.6, 0.2), n)
 				g2.position = Vector3(0, 0.3, 0.6)
 				w = p.r * 2.2
+			"tile":
+				n = _armor_plate()
+				mat = n.get_meta("mat")
+				mat.albedo_color = Color(0.68, 0.7, 0.78).lerp(hc * 3.0, 0.3)
+				(n.get_meta("seam") as StandardMaterial3D).emission_energy_multiplier = 0.9
+				w = p.r * 2.25
+				lift = 1.6
 			_:
 				n = _armor_plate()
 				mat = n.get_meta("mat")
 				w = p.r * 2.1
-		part_nodes[p] = {node = n, w = w, lift = lift, mat = mat}
+		var d := {node = n, w = w, lift = lift, mat = mat}
+		if p.group == "skin":
+			# 벗겨지면 드러나는 속 기계: 깜빡이는 주황 불빛(판마다 쏜 자리대로 모양이 달라짐)
+			var inner := Node3D.new()
+			world.add_child(inner)
+			var ember := _glow_quad(1.3, Color(0.75, 0.16, 0.06), inner)  # 적탄(밝은 점)과 헷갈리지 않게 심 없는 크고 어두운 잔불
+			(ember.material_override as ShaderMaterial).set_shader_parameter("core_amt", 0.0)
+			var pit := MeshInstance3D.new()
+			var pm := CylinderMesh.new()
+			pm.radial_segments = 6
+			pm.top_radius = 0.42
+			pm.bottom_radius = 0.42
+			pm.height = 0.05
+			pit.mesh = pm
+			pit.material_override = dark_metal
+			pit.position.y = -0.3
+			inner.add_child(pit)
+			inner.visible = false
+			d.inner = inner
+			d.ph = randf() * TAU
+		part_nodes[p] = d
 	# 엔진 불꽃(선체 뒤쪽)
 	for s in [-0.12, 0.0, 0.12]:
 		var e := _glow_quad(0.1, Color(0.5, 0.8, 1.8), hull)
@@ -299,6 +328,7 @@ func _armor_plate() -> Node3D:
 	seam.rotation_degrees.y = 30
 	n.add_child(seam)
 	n.set_meta("mat", pm)
+	n.set_meta("seam", sm)
 	return n
 
 func _player() -> void:
@@ -333,6 +363,11 @@ func part_broken(p: Boss.Part, at: Vector2) -> void:
 	(d.node as Node3D).visible = false
 	var pos := to3d(at, d.lift)
 	var u := units_per_px(at)
+	if d.has("inner"):
+		(d.inner as Node3D).visible = true
+		for i in 4:
+			_debris(pos, p.r * u * 0.6, p.r * u * 0.18, i)
+		return
 	var flash := OmniLight3D.new()
 	flash.light_color = Color(1.0, 0.6, 0.25)
 	flash.light_energy = 14.0
@@ -341,16 +376,20 @@ func part_broken(p: Boss.Part, at: Vector2) -> void:
 	world.add_child(flash)
 	moving.append({node = flash, fade = 14.0, life = 0.5})
 	for i in (16 if p.group != "armor" else 10):
-		var c := MeshInstance3D.new()
-		var bx := BoxMesh.new()
-		bx.size = Vector3(randf_range(0.25, 0.7), randf_range(0.1, 0.25), randf_range(0.25, 0.6)) * p.r * u * 0.6
-		c.mesh = bx
-		c.material_override = metal if i % 3 else dark_metal
-		c.position = pos
-		c.rotation = Vector3(randf() * TAU, randf() * TAU, randf() * TAU)
-		world.add_child(c)
-		var dir := Vector3(randf_range(-1, 1), randf_range(0.3, 1.2), randf_range(-0.4, 1.0)).normalized()
-		moving.append({node = c, vel = dir * randf_range(8, 18) * p.r * u * 0.18, spin = Vector3(randf_range(-9, 9), randf_range(-9, 9), 0), grav = 30.0 * p.r * u * 0.1, life = 1.4})
+		_debris(pos, p.r * u * 0.6, p.r * u * 0.18, i)
+
+# 금속 파편 하나: 튀어 올라 돌며 떨어짐(1.4초 뒤 정리)
+func _debris(pos: Vector3, size: float, speed: float, i: int) -> void:
+	var c := MeshInstance3D.new()
+	var bx := BoxMesh.new()
+	bx.size = Vector3(randf_range(0.25, 0.7), randf_range(0.1, 0.25), randf_range(0.25, 0.6)) * size
+	c.mesh = bx
+	c.material_override = metal if i % 3 else dark_metal
+	c.position = pos
+	c.rotation = Vector3(randf() * TAU, randf() * TAU, randf() * TAU)
+	world.add_child(c)
+	var dir := Vector3(randf_range(-1, 1), randf_range(0.3, 1.2), randf_range(-0.4, 1.0)).normalized()
+	moving.append({node = c, vel = dir * randf_range(8, 18) * speed, spin = Vector3(randf_range(-9, 9), randf_range(-9, 9), 0), grav = speed * 30.0 / 1.8, life = 1.4})
 
 func sync(dt: float) -> void:
 	var b := main.boss
@@ -360,6 +399,10 @@ func sync(dt: float) -> void:
 		var d: Dictionary = part_nodes[p]
 		var n: Node3D = d.node
 		if not p.alive:
+			if d.has("inner"):
+				var inner: Node3D = d.inner
+				inner.visible = b.visible
+				_place(inner, b.part_world(p), p.r * 2.2 * (0.9 + 0.1 * sin(b.t * 5.0 + d.ph)), 1.2)
 			continue
 		n.visible = b.visible
 		_place(n, b.part_world(p), d.w, d.lift)
@@ -367,7 +410,7 @@ func sync(dt: float) -> void:
 		if p.shape == "core":
 			m.emission_energy_multiplier = 3.5 + p.flash * 6.0 + (2.0 if b.vulnerable(p) else 0.0) * (0.6 + 0.4 * sin(b.t * 8.0))
 		else:
-			m.emission_energy_multiplier = p.flash * 0.9
+			m.emission_energy_multiplier = p.flash * 0.5
 	core_ring.rotation.z += dt * 1.5
 	# 내 기체: 좌우로 움직이면 그쪽으로 기울어짐
 	var pp := main.player.position

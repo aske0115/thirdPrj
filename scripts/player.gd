@@ -55,7 +55,7 @@ func update(dt: float, firing: bool) -> void:
 		fire_t += 1.0 / 16.0
 		muzzle += 1
 		var p := position + Vector2(0, -40)
-		var c := Color(0.7, 1.8, 2.8, 0.9)
+		var c := Color(0.45, 1.3, 2.0, 0.45)  # 내 탄은 반투명·덜 밝게 — 적탄이 늘 더 튀어야 피할 탄이 보임
 		shots.spawn(p, Vector2(0, -1700), 6.0, c)
 		shots.spawn(p + Vector2(-18, 14), Vector2(-90, -1650), 5.0, c)
 		shots.spawn(p + Vector2(18, 14), Vector2(90, -1650), 5.0, c)

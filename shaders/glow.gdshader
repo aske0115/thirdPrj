@@ -5,6 +5,7 @@ render_mode unshaded, blend_add, depth_draw_never, cull_disabled, shadows_disabl
 uniform bool billboard = true;
 uniform float streak = 0.0;
 uniform float intensity = 1.0;
+uniform float core_amt = 1.4;  // 하얀 심 세기(0이면 심 없는 은은한 빛 — 탄과 구분되는 장식용)
 
 void vertex() {
 	if (billboard) {
@@ -19,6 +20,6 @@ void fragment() {
 	float d = length(p);
 	float core = smoothstep(0.32, 0.0, d);
 	float halo = pow(clamp(1.0 - d, 0.0, 1.0), 2.2);
-	vec3 c = COLOR.rgb * halo + vec3(1.0) * core * 1.4;
+	vec3 c = COLOR.rgb * halo + vec3(1.0) * core * core_amt;
 	ALBEDO = c * intensity;
 }

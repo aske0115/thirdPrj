@@ -13,10 +13,12 @@ G=/Applications/Godot.app/Contents/MacOS/Godot
 $G --headless --path . --import                     # 에셋 가져오기(처음 받았을 때·에셋 바꾼 뒤)
 $G --path .                                          # 창으로 실행(마우스 끌기 = 터치)
 $G --headless --path . -- --bot --quit-at=125        # 봇이 한 판 플레이, STATS·RESULT 줄 출력
-$G --path . -- --bot --shot=/tmp/s.png --shot-at=20 --quit-at=21   # 화면 저장(창이 잠깐 뜸)
+$G --path . --screen 1 --resolution 36x78 -- --auto --god --shot=/tmp/s.png --shot-at=12 --quit-at=13   # 화면 저장: --shot이 있으면 창은 노트북 화면 구석에 손톱만 하게, 그림은 720×1280
+$G --headless --fixed-fps 60 --path . -- --auto --god --quit-at=150   # 창 없이 끝까지 흐름 확인(RESULT 줄)
 $G -e --path .                                       # 편집기
 ```
-- 사용자 인자는 `--` 뒤에: `--bot`(자동 플레이), `--seed=N`(도시 배치), `--shot=경로`·`--shot-at=초`, `--quit-at=초`, `--lang=en`.
+- 사용자 인자는 `--` 뒤에: `--auto`(자동 플레이), `--god`(시험용 무적), `--day=YYYYMMDD`(그날의 오늘의 보스), `--boss=iron_whale`(손으로 만든 보스), `--shot=경로`·`--shot-at=초`, `--quit-at=초`, `--lang=en`.
+- 종료 타이머를 걸 때 `pkill`로 이름을 찾아 끄지 말고 자기 PID만 끈다(다른 실행까지 죽임).
 
 ## iPhone에 설치
 ```bash
