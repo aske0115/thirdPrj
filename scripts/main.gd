@@ -52,7 +52,7 @@ func _ready() -> void:
 		w.position = DisplayServer.screen_get_position(sc) + DisplayServer.screen_get_size(sc) - w.size
 	var env := Environment.new()
 	env.background_mode = Environment.BG_CANVAS
-	env.glow_enabled = true
+	env.glow_enabled = false  # 실기기(mobile)에서 2D 글로우가 깜빡임·흐린 탄의 원인으로 의심 → 끄고 탄은 셰이더로 또렷하게
 	env.glow_intensity = 0.9
 	env.glow_strength = 1.0
 	env.glow_bloom = 0.0
@@ -67,7 +67,9 @@ func _ready() -> void:
 	var dot := _dot_texture()
 	enemy = Bullets.new()
 	add_child(enemy)
-	enemy.setup(1600, dot, Vector2(2.8, 2.8))
+	var bm := ShaderMaterial.new()
+	bm.shader = load("res://shaders/bullet.gdshader")
+	enemy.setup(1600, dot, Vector2(3.6, 3.6), bm)  # 판정보다 크게, 테두리 있는 또렷한 탄(빛 번짐 없이도 보이게)
 	enemy.z_index = 5
 	shots = Bullets.new()
 	add_child(shots)
@@ -113,7 +115,7 @@ func _ready() -> void:
 	hud.boss_name.text = ("#%d  " % int(boss.data["week"])) + (nm["ko"] if lang == "ko" else nm["en"])
 	hud.sub.text = ("DAILY BOSS #%d  ·  %s" if daily else "WEEK %02d  ·  %s") % [int(boss.data["week"]), String(nm["en"]).to_upper()]
 	hud.show_banner("WARNING", Color(2.6, 0.4, 0.3), 0.7)
-	hud.flash_screen(Color(1, 0.1, 0.05), 0.35)
+	hud.flash_screen(Color(1, 0.1, 0.05), 0.18)
 	fx.play("warn", 1.0, -6.0)
 	shake = 0.9
 	get_tree().create_timer(1.0).timeout.connect(func(): hud.show_card("%s\n%s" % [nm[lang] if nm.has(lang) else nm["en"], intro[lang] if intro.has(lang) else intro["en"]]))
@@ -206,7 +208,8 @@ func _on_part_broken(p: Boss.Part, at: Vector2) -> void:
 	var big := p.group != "armor"
 	hitstop(0.09 if big else 0.06)
 	shake = maxf(shake, 1.0 if big else 0.7)
-	hud.flash_screen(Color(1, 0.9, 0.7), 0.35 if big else 0.22)
+	if big:  # 화면 전체 번쩍임은 큰 부위만, 약하게(잦은 번쩍임 = 깜빡여 보임)
+		hud.flash_screen(Color(1, 0.9, 0.7), 0.12)
 	fx.burst("boom", at, 1.6 if big else 1.0)
 	fx.burst("spark", at, 1.6)
 	fx.burst("smoke", at, 1.2)
@@ -246,7 +249,7 @@ func _on_defeated(at: Vector2) -> void:
 		shake = 1.6
 		await get_tree().create_timer(0.12, true, false, true).timeout
 	boss.visible = false
-	hud.flash_screen(Color(1, 1, 1), 0.9)
+	hud.flash_screen(Color(1, 1, 1), 0.6)
 	Engine.time_scale = 1.0
 	_vibrate(200, 1.0)
 	hud.show_banner(L("격파!", "DEFEATED!"), Color(2.8, 2.2, 0.8), 1.2)

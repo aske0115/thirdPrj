@@ -16,7 +16,7 @@ var mm: MultiMesh
 var buf := PackedFloat32Array()
 var bounds := Rect2(-80, -80, 880, 1440)
 
-func setup(capacity: int, tex: Texture2D, look_scale: Vector2) -> void:
+func setup(capacity: int, tex: Texture2D, look_scale: Vector2, mat: Material = null) -> void:
 	cap = capacity
 	look = look_scale
 	pos.resize(cap)
@@ -38,9 +38,12 @@ func setup(capacity: int, tex: Texture2D, look_scale: Vector2) -> void:
 	var mmi := MultiMeshInstance2D.new()
 	mmi.multimesh = mm
 	mmi.texture = tex
-	var m := CanvasItemMaterial.new()
-	m.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
-	mmi.material = m
+	if mat:
+		mmi.material = mat
+	else:
+		var m := CanvasItemMaterial.new()
+		m.blend_mode = CanvasItemMaterial.BLEND_MODE_ADD
+		mmi.material = m
 	add_child(mmi)
 
 func spawn(p: Vector2, v: Vector2, r: float, c: Color) -> void:

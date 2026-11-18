@@ -6,7 +6,7 @@ cd "$(dirname "$0")"
 G=/Applications/Godot.app/Contents/MacOS/Godot
 DEV=${1:-$(xcrun devicectl list devices 2>/dev/null | awk '/connected/ && /physical/ {for(i=1;i<=NF;i++) if($i ~ /^[0-9A-F]{8}-[0-9A-F]{16}$/) {print $i; exit}}')}
 [ -z "$DEV" ] && { echo "연결된 iPhone이 없습니다(xcrun devicectl list devices)"; exit 1; }
-rm -rf build/ios && mkdir -p build/ios
+rm -rf build/ios && mkdir -p build/ios && touch build/.gdignore  # Godot가 빌드 결과물을 가져오지 않게
 $G --headless --path . --export-debug "iOS" build/ios/BossRush.ipa
 cd build/ios
 xcodebuild -project BossRush.xcodeproj -scheme BossRush -configuration Debug \
