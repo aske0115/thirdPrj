@@ -53,5 +53,8 @@ static func load_save() -> ConfigFile:
 	cf.load(SAVE)
 	return cf
 
+# 시험용: 디버그 빌드(./ios.sh·편집기)는 모든 기체가 열려 있다. 출시 빌드(--export-release)만 보석으로 언락.
 static func owned(cf: ConfigFile) -> Array:
+	if OS.is_debug_build():
+		return LIST.map(func(s: Dictionary) -> String: return s.id)
 	return cf.get_value("ships", "owned", ["striker"])
