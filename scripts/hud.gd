@@ -4,6 +4,8 @@ extends CanvasLayer
 
 signal retry
 signal ship_pressed(id: String)
+signal free_pressed
+signal ad_pressed
 
 var font: Font
 var font_en: Font
@@ -19,6 +21,8 @@ var panel_lbl: Label
 var flash: ColorRect
 var ship_row: HBoxContainer
 var ship_info: Label
+var free_btn: Button
+var ad_btn: Button
 
 func _ready() -> void:
 	font = load("res://assets/fonts/BlackHanSans-Regular.ttf")
@@ -150,6 +154,16 @@ func _ready() -> void:
 	ship_row = HBoxContainer.new()
 	ship_row.add_theme_constant_override("separation", 8)
 	v.add_child(ship_row)
+	# 보석 받기: 하루 무료 1회 + 광고 하루 3회
+	var offers := HBoxContainer.new()
+	offers.add_theme_constant_override("separation", 8)
+	v.add_child(offers)
+	free_btn = _offer_btn(Color(0.95, 0.75, 0.3))
+	free_btn.pressed.connect(func(): free_pressed.emit())
+	offers.add_child(free_btn)
+	ad_btn = _offer_btn(Color(0.5, 0.9, 1.0))
+	ad_btn.pressed.connect(func(): ad_pressed.emit())
+	offers.add_child(ad_btn)
 	var b := Button.new()
 	b.text = Main.L("다시 도전", "Retry")
 	b.custom_minimum_size.y = 96
@@ -190,6 +204,27 @@ func show_card(text: String) -> void:
 func flash_screen(c: Color, a: float) -> void:
 	flash.color = Color(c.r, c.g, c.b, a)
 	create_tween().tween_property(flash, "color:a", 0.0, 0.22)
+
+func _offer_btn(edge: Color) -> Button:
+	var b := Button.new()
+	b.custom_minimum_size = Vector2(0, 64)
+	b.size_flags_horizontal = Control.SIZE_EXPAND_FILL
+	b.add_theme_font_size_override("font_size", 20)
+	var sb := StyleBoxFlat.new()
+	sb.set_corner_radius_all(14)
+	sb.bg_color = Color(0.1, 0.09, 0.16)
+	sb.border_color = edge
+	sb.set_border_width_all(2)
+	for st in ["normal", "hover", "pressed", "disabled"]:
+		b.add_theme_stylebox_override(st, sb)
+	b.add_theme_color_override("font_disabled_color", Color(0.45, 0.45, 0.55))
+	return b
+
+func set_offers(free_text: String, free_on: bool, ad_text: String, ad_on: bool) -> void:
+	free_btn.text = free_text
+	free_btn.disabled = not free_on
+	ad_btn.text = ad_text
+	ad_btn.disabled = not ad_on
 
 func set_ships(items: Array, info: String) -> void:
 	ship_info.text = info

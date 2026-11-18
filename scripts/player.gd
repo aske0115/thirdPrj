@@ -6,6 +6,12 @@ const HITBOX := 7.0
 var fire_t := 0.0
 var invuln := 0.0
 var lives := 3
+var max_lives := 3
+var hitbox := HITBOX
+var shield_every := 0.0   # 방어막이 다시 차는 초(기체 특성), 0이면 없음
+var shield_t := 0.0
+var shield_ready := false
+signal shield_charged
 var shots: Bullets
 var core: Node2D
 var body: Node2D
@@ -47,6 +53,11 @@ func update(dt: float, firing: bool) -> void:
 	if invuln > 0.0:
 		invuln -= dt  # 무적 중 켜졌다 꺼졌다 하면 깜빡여 보임(실기기 판정) → 3D 보호막이 부드럽게 표시(view3d.gd)
 	visible = true
+	if shield_every > 0.0 and not shield_ready:
+		shield_t -= dt
+		if shield_t <= 0.0:
+			shield_ready = true
+			shield_charged.emit()
 	body.position.y = sin(Time.get_ticks_msec() * 0.01) * 1.5
 	if not firing:
 		return
@@ -60,14 +71,14 @@ func update(dt: float, firing: bool) -> void:
 				fire_t += 1.0 / 13.0
 				for j in 5:
 					var a := deg_to_rad(-90.0 + (j - 2) * 11.0)
-					shots.spawn(p, Vector2.from_angle(a) * 1550.0, 5.0, c, 0.75)
+					shots.spawn(p, Vector2.from_angle(a) * 1550.0, 5.0, c, 0.9)
 			"lance":  # 굵은 한 줄기: 가운데 한 곳에 몰아 줌
 				fire_t += 1.0 / 22.0
 				shots.spawn(p, Vector2(0, -2100), 9.0, c, 2.3)
 			"homing":  # 날개에서 유도 미사일 2발 + 가운데 약한 직선탄
 				fire_t += 1.0 / 9.0
 				for side in [-1, 1]:
-					shots.spawn(position + Vector2(30 * side, -10), Vector2(260 * side, -900), 6.0, c, 2.0, true)
+					shots.spawn(position + Vector2(30 * side, -10), Vector2(260 * side, -900), 6.0, c, 0.85, true)
 				shots.spawn(p, Vector2(0, -1700), 4.0, c, 0.6)
 			_:  # triple: 세 갈래 연사
 				fire_t += 1.0 / 16.0

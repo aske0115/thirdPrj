@@ -436,9 +436,11 @@ func sync(dt: float) -> void:
 	_place(ship, pp + Vector2(0, 6), ship_w, 1.0)
 	ship.rotation.z = bank
 	var inv := main.player.invuln
-	shield.visible = inv > 0.0
+	shield.visible = inv > 0.0 or main.player.shield_ready
 	if inv > 0.0:
 		shield.scale = Vector3.ONE * (1.0 + 0.08 * sin(b.t * 10.0)) * clampf(inv * 2.0, 0.3, 1.0)
+	elif main.player.shield_ready:  # 기체 특성 방어막이 차 있음: 작고 은은하게
+		shield.scale = Vector3.ONE * (0.8 + 0.03 * sin(b.t * 3.0))
 	for i in range(moving.size() - 1, -1, -1):
 		var m2: Dictionary = moving[i]
 		var n2: Node3D = m2.node

@@ -21,6 +21,7 @@ var day := 0
 var ship: Dictionary
 var save: ConfigFile
 var run_gems := 0
+var earned := 0
 var skin_sound_t := 0.0
 var score := 0
 var shake := 0.0
@@ -96,12 +97,18 @@ func _ready() -> void:
 	player = Player.new()
 	player.shots = shots
 	player.weapon = ship.weapon
+	player.hitbox = ship.hitbox
+	player.lives = int(ship.lives)
+	player.max_lives = player.lives
+	player.shield_every = ship.shield
+	player.shield_ready = ship.shield > 0.0  # 첫 방어막은 켜자마자 있음
 	var sc: Array = ship.shot
 	player.shot_col = Color(sc[0], sc[1], sc[2], 0.45)
 	shots.orient = ship.weapon in ["spread", "homing"]
 	player.position = Vector2(360, 1060)
 	player.z_index = 6
 	add_child(player)
+	player.core.scale = Vector2.ONE * (ship.hitbox / Player.HITBOX)  # 판정 점도 기체 판정 크기대로
 	# 그림은 3D 층이 맡고, 2D 보스·기체 몸통은 판정용으로만 남긴다(판정 점은 보이게 둠)
 	boss.modulate = Color(1, 1, 1, 0)
 	player.body.visible = false
@@ -118,6 +125,8 @@ func _ready() -> void:
 	fx.setup(hud.font_en, dot)
 	fx.gem_collected.connect(_on_gems)
 	hud.ship_pressed.connect(_on_ship_pressed)
+	hud.free_pressed.connect(_on_free)
+	hud.ad_pressed.connect(_on_ad)
 	# 켜자마자: 경고 + 보스 등장(결정 007 — 첫 화면부터 터지게)
 	var nm: Dictionary = boss.data["name"]
 	var intro: Dictionary = boss.data["intro"]
@@ -150,7 +159,7 @@ func _dot_texture() -> Texture2D:
 	return gt
 
 func lives_text() -> void:
-	hud.lives_lbl.text = "♥".repeat(player.lives) + "♡".repeat(3 - player.lives)
+	hud.lives_lbl.text = "♥".repeat(player.lives) + "♡".repeat(player.max_lives - player.lives)
 
 func _input(e: InputEvent) -> void:
 	if auto or over:
@@ -175,10 +184,10 @@ func _process(delta: float) -> void:
 	player.update(delta, not over and t > 0.35)
 	enemy.update(delta)
 	shots.update(delta)
-	var dealt := 0.0 if over else boss.take_hits(shots, 2.5)  # 끝난 뒤 날아가던 탄이 결과를 바꾸지 않게
+	var dealt := 0.0 if over else boss.take_hits(shots, 2.5 * float(ship.power))  # 끝난 뒤 날아가던 탄이 결과를 바꾸지 않게
 	if dealt > 0.0:
 		score += int(dealt) * 3
-	if not over and player.invuln <= 0.0 and enemy.hit_circle(player.position, Player.HITBOX) >= 0:
+	if not over and player.invuln <= 0.0 and enemy.hit_circle(player.position, player.hitbox) >= 0:
 		_player_hit()
 	fx.update(delta, player.position)
 	view.sync(delta)
@@ -271,12 +280,21 @@ func _on_defeated(at: Vector2) -> void:
 	hud.show_banner(L("격파!", "DEFEATED!"), Color(2.8, 2.2, 0.8), 1.2)
 	await get_tree().create_timer(1.6).timeout
 	var nm: Dictionary = boss.data["name"]
-	var best := _record(score)
-	hud.show_result(L("오늘의 보스 #%d\n%s 격파!\n\n점수 %d\n오늘 최고 %d\n시간 %.1f초\n보석 +%d\n내일은 새 보스가 와요", "Daily Boss #%d\n%s down!\n\nScore %d\nToday's best %d\nTime %.1fs\nGems +%d\nA new boss arrives tomorrow") % [int(boss.data["week"]), nm[lang] if nm.has(lang) else nm["en"], score, best, t, run_gems])
-	print("RESULT win time=%.1f score=%d lives=%d" % [t, score, player.lives])
+	var best := _record(score, true)
+	hud.show_result(L("오늘의 보스 #%d\n%s 격파!\n\n점수 %d\n오늘 최고 %d\n시간 %.1f초\n보석 +%d\n내일은 새 보스가 와요", "Daily Boss #%d\n%s down!\n\nScore %d\nToday's best %d\nTime %.1fs\nGems +%d\nA new boss arrives tomorrow") % [int(boss.data["week"]), nm[lang] if nm.has(lang) else nm["en"], score, best, t, earned])
+	print("RESULT win time=%.1f score=%d lives=%d gems=%d" % [t, score, player.lives, run_gems])
 
 func _player_hit() -> void:
 	if args.has("god"):  # 시험용 무적(끝까지 흐름 확인)
+		return
+	if player.shield_ready:  # 기체 특성: 방어막이 한 번 막아 줌
+		player.shield_ready = false
+		player.shield_t = player.shield_every
+		player.invuln = 1.0
+		fx.ring(player.position, 160.0, Color(0.5, 1.6, 2.6), 0.4, 10.0)
+		fx.play("glass", 1.6, -6.0)
+		hud.show_banner(L("방어막!", "SHIELD!"), Color(0.6, 1.8, 2.6), 0.3)
+		_vibrate(40, 0.5)
 		return
 	player.lives -= 1
 	player.invuln = 2.0
@@ -296,8 +314,8 @@ func _player_hit() -> void:
 		over = true
 		player.visible = false
 		var best := _record(score)
-		hud.show_result(L("격추당했어요\n\n보스 체력 %d%% 남음\n점수 %d\n오늘 최고 %d\n보석 +%d", "Shot down\n\nBoss HP left %d%%\nScore %d\nToday's best %d\nGems +%d") % [int(boss.hp_fraction() * 100), score, best, run_gems])
-		print("RESULT lose time=%.1f score=%d boss=%.2f" % [t, score, boss.hp_fraction()])
+		hud.show_result(L("격추당했어요\n\n보스 체력 %d%% 남음\n점수 %d\n오늘 최고 %d\n보석 +%d", "Shot down\n\nBoss HP left %d%%\nScore %d\nToday's best %d\nGems +%d") % [int(boss.hp_fraction() * 100), score, best, earned])
+		print("RESULT lose time=%.1f score=%d boss=%.2f gems=%d" % [t, score, boss.hp_fraction(), run_gems])
 
 func _on_gems(n: int) -> void:
 	if over:
@@ -316,7 +334,43 @@ func _refresh_ships() -> void:
 		var txt := Ships.label(s2) + "\n" + (L("장착 중", "Equipped") if s2.id == sel else (L("고르기", "Select") if own else L("보석 %d", "%d gems") % s2.price))
 		items.append({id = s2.id, text = txt, selected = s2.id == sel, locked = not own, afford = gems >= s2.price})
 	var cur := Ships.get_ship(sel)
-	hud.set_ships(items, L("보유 보석 %d  ·  %s: %s", "Gems %d  ·  %s: %s") % [gems, Ships.label(cur), cur.desc_ko if lang == "ko" else cur.desc_en])
+	var info := L("보유 보석 %d  ·  %s: %s", "Gems %d  ·  %s: %s") % [gems, Ships.label(cur), cur.desc_ko if lang == "ko" else cur.desc_en]
+	for s3 in Ships.LIST:  # 다음 목표가 늘 보이게: 아직 없는 가장 싼 기체까지 남은 보석
+		if not s3.id in have:
+			info += L("\n%s까지 보석 %d 남음", "\n%d gems to %s") % ([Ships.label(s3), maxi(0, s3.price - gems)] if lang == "ko" else [maxi(0, s3.price - gems), Ships.label(s3)])
+			break
+	hud.set_ships(items, info)
+	var today := str(Daily.today())
+	var free_ok: bool = save.get_value("offers", "free_day", "") != today
+	var ads_used := int(save.get_value("offers", "ads_" + today, 0))
+	hud.set_offers(L("무료 보석 +%d", "Free +%d gems") % Ships.DAILY_FREE if free_ok else L("오늘 무료 받음", "Claimed today"), free_ok,
+		L("광고 보고 +%d  (%d/%d)", "Watch ad +%d  (%d/%d)") % [Ships.AD_REWARD, ads_used, Ships.AD_MAX], ads_used < Ships.AD_MAX)
+
+func _add_gems(n: int) -> void:
+	save.set_value("ships", "gems", int(save.get_value("ships", "gems", 0)) + n)
+	save.save(Ships.SAVE)
+	hud.show_banner(L("보석 +%d", "+%d gems") % n, Color(2.4, 2.0, 0.6), 0.5)
+	fx.play("tick", 1.2, -6.0)
+	_refresh_ships()
+
+func _on_free() -> void:
+	var today := str(Daily.today())
+	if save.get_value("offers", "free_day", "") == today:
+		return
+	save.set_value("offers", "free_day", today)
+	_add_gems(Ships.DAILY_FREE)
+
+# shortcut: 1초짜리 가짜 광고 — 실제 AdMob 보상형 광고는 출시 준비 때 광고 담당이 연결(콘솔 작업은 사용자 확인 후)
+func _on_ad() -> void:
+	var key := "ads_" + str(Daily.today())
+	var used := int(save.get_value("offers", key, 0))
+	if used >= Ships.AD_MAX:
+		return
+	hud.ad_btn.disabled = true
+	hud.show_banner(L("광고 재생 중(시험)", "Ad playing (test)"), Color(0.8, 0.9, 1.0), 0.6)
+	await get_tree().create_timer(1.0).timeout
+	save.set_value("offers", key, used + 1)
+	_add_gems(Ships.AD_REWARD)
 
 func _on_ship_pressed(id: String) -> void:
 	var s2 := Ships.get_ship(id)
@@ -336,9 +390,10 @@ func _on_ship_pressed(id: String) -> void:
 	_refresh_ships()
 
 # 기기 안에 날짜별 최고 기록·도전 횟수 저장(1단계 — 순위표는 2단계 Firebase). 최고 기록을 돌려줌.
-func _record(sc: int) -> int:
+func _record(sc: int, won := false) -> int:
+	earned = run_gems / Ships.SHARDS_PER_GEM + (Ships.WIN_BONUS if won else 0)
 	if not args.has("auto"):
-		save.set_value("ships", "gems", int(save.get_value("ships", "gems", 0)) + run_gems)
+		save.set_value("ships", "gems", int(save.get_value("ships", "gems", 0)) + earned)
 		save.save(Ships.SAVE)
 	_refresh_ships.call_deferred()
 	if args.has("auto"):
