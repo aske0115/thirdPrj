@@ -2,16 +2,19 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c8f5gjemd2su5"
-path="res://.godot/imported/Imperial_Purple.png-0c0fafc2240fcda6f92ecef99a94a6ea.ctex"
+uid="uid://b4vmhoe4k0opk"
+path="res://.godot/imported/Fighter_Atlas.png-d1fa3a5a81ae311769c1ef157e72f288.ctex"
 metadata={
 "vram_texture": false
+}
+generator_parameters={
+"md5": "b6b1d5843eb67973aacf764f46d2f25b"
 }
 
 [deps]
 
-source_file="res://assets/ships/Imperial_Purple.png"
-dest_files=["res://.godot/imported/Imperial_Purple.png-0c0fafc2240fcda6f92ecef99a94a6ea.ctex"]
+source_file="res://assets/ships/Fighter_Atlas.png"
+dest_files=["res://.godot/imported/Fighter_Atlas.png-d1fa3a5a81ae311769c1ef157e72f288.ctex"]
 
 [params]
 
@@ -23,7 +26,7 @@ compress/rdo_quality_loss=0.0
 compress/hdr_compression=1
 compress/normal_map=0
 compress/channel_pack=0
-mipmaps/generate=false
+mipmaps/generate=true
 mipmaps/limit=-1
 roughness/mode=0
 roughness/src_normal=""

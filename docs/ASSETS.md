@@ -25,3 +25,20 @@
 | Orbitron | Google Fonts(ofl/orbitron) | `assets/fonts/` | `OFL-Orbitron.txt`(SIL OFL 1.1) | 숫자·영문 |
 - 구글 드라이브 받는 법: 폴더 페이지의 파일 `aria-label`과 `ssk` 속성에서 파일 ID를 뽑아 `https://drive.usercontent.google.com/download?id=<ID>&export=download&confirm=t`.
 - OFL 글꼴은 게임에 넣어 배포 가능(글꼴 파일만 따로 팔 수 없음, 라이선스 동봉).
+
+## Poly Pizza의 Quaternius 모델 (CC0, 2026-11-18 추가)
+구글 드라이브 공유가 다운로드 한도 초과(Quota exceeded)라, 같은 제작자(Quaternius)가 Poly Pizza에 올린 개별 모델을 받음. 각 페이지에 "By Quaternius", "Public Domain (CC0)" 표기 확인.
+
+| 파일(assets/ships/) | Poly Pizza 페이지 | 쓰는 곳 |
+|---|---|---|
+| Fighter.glb | https://poly.pizza/m/uCeLfsdmNP | 기체 와이드 |
+| Lancer.glb | https://poly.pizza/m/htfBk9vPfw | 기체 랜스 |
+| Raider.glb | https://poly.pizza/m/Jqfed124pQ | 기체 헌터 |
+| Station.glb | https://poly.pizza/m/aNhGga1jGX | 보스 몸통(고리 정거장) |
+| Hauler.glb | https://poly.pizza/m/VSxUAFhzbA | 보스 몸통(화물선) |
+| Interceptor.glb | https://poly.pizza/m/PQzePrvBCD | 보스 몸통(대형 전투기) |
+| Drone.glb | https://poly.pizza/m/xNbtFQwirO | 졸병 편대 전투기 |
+| Scout.glb | https://poly.pizza/m/DbGajMHrvp | 졸병 방패 드론 |
+| Mine.glb | https://poly.pizza/m/EC1Lk2IamI | 졸병 기뢰 |
+
+받는 법: 모델 페이지 HTML의 `https://static.poly.pizza/<uuid>.glb` 주소. 미리보기 시트는 `GLTFDocument`로 런타임 로드해 한 장에 렌더.

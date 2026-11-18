@@ -2,16 +2,19 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://yky5hmvibbox"
-path="res://.godot/imported/Striker_Green.png-60c309ca6358e71890d602da79cfc216.ctex"
+uid="uid://c8r41k3kavvx0"
+path="res://.godot/imported/Raider_Atlas.png-a7f4d840679812097d44d97cecb5a8bb.ctex"
 metadata={
 "vram_texture": false
+}
+generator_parameters={
+"md5": "b6b1d5843eb67973aacf764f46d2f25b"
 }
 
 [deps]
 
-source_file="res://assets/ships/Striker_Green.png"
-dest_files=["res://.godot/imported/Striker_Green.png-60c309ca6358e71890d602da79cfc216.ctex"]
+source_file="res://assets/ships/Raider_Atlas.png"
+dest_files=["res://.godot/imported/Raider_Atlas.png-a7f4d840679812097d44d97cecb5a8bb.ctex"]
 
 [params]
 
@@ -23,7 +26,7 @@ compress/rdo_quality_loss=0.0
 compress/hdr_compression=1
 compress/normal_map=0
 compress/channel_pack=0
-mipmaps/generate=false
+mipmaps/generate=true
 mipmaps/limit=-1
 roughness/mode=0
 roughness/src_normal=""

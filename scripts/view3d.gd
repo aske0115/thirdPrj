@@ -22,6 +22,8 @@ var ship_prev_x := 360.0
 var bank := 0.0
 var shield: MeshInstance3D
 var moving: Array[Dictionary] = []
+var minion_nodes := {}   # Minions.M → Node3D
+const MINION_LOOK := {fighter = {model = "res://assets/ships/Drone.glb", rot = 180.0, w = 72.0}, mine = {model = "res://assets/ships/Mine.glb", rot = 0.0, w = 50.0}, drone = {model = "res://assets/ships/Scout.glb", rot = 0.0, w = 70.0}}
 const BLEED := 24.0  # 3D 층을 화면보다 사방 24px 크게 — 흔들려도 가장자리 빈 바탕이 안 비치게
 var flash: OmniLight3D
 var flash_t := 0.0
@@ -206,15 +208,16 @@ func _recolor(model: Node3D, fn: Callable) -> void:
 
 func _boss() -> void:
 	var b := main.boss
-	var model: Node3D = load("res://assets/ships/Executioner.gltf").instantiate()
+	var hd: Dictionary = b.data.get("hull", {model = "res://assets/ships/Executioner.gltf", rot = 180.0})  # 날마다 다른 몸통
+	var model: Node3D = load(hd.model).instantiate()
 	var hc := b.hull_col
 	_recolor(model, func(src: Material) -> Material:
 		var m: StandardMaterial3D = (src as StandardMaterial3D).duplicate() if src is StandardMaterial3D else StandardMaterial3D.new()
-		m.albedo_color = Color(0.72, 0.74, 0.82).lerp(hc * 3.0, 0.25)  # 보스 데이터의 선체 색을 살짝 섞음(주마다 다른 색)
+		m.albedo_color = Color(0.5, 0.52, 0.58).lerp(hc * 3.0, 0.3)  # 어둡게 눌러 탄이 더 튀게 + 날마다 다른 선체 색
 		m.metallic = 0.75
 		m.roughness = 0.38
 		return m)
-	hull = _wrap(model, 180.0)  # 머리가 화면 아래(플레이어 쪽)
+	hull = _wrap(model, float(hd.rot))  # 머리가 화면 아래(플레이어 쪽)
 	hull_w = 640.0
 	for p in b.parts:
 		var n: Node3D
@@ -354,7 +357,7 @@ func _player() -> void:
 		m.rim = 0.8
 		m.rim_tint = 0.3
 		return m)
-	ship = _wrap(model, 180.0)  # 기수가 보스 쪽
+	ship = _wrap(model, float(main.ship.get("rot", 180.0)))  # 기수가 보스 쪽
 	shield = _glow_quad(1.6, Color(0.25, 0.6, 1.0), ship)  # 맞은 뒤 무적 동안 부드럽게 맥동하는 보호막
 	(shield.material_override as ShaderMaterial).set_shader_parameter("core_amt", 0.0)
 	shield.visible = false
@@ -366,6 +369,28 @@ func _player() -> void:
 		fl.rotation_degrees.x = -90
 		fl.scale = Vector3(1, 3.2, 1)
 		fl.position = Vector3(s, -0.02, 0.85)
+
+# 졸병: 생길 때 모델을 만들고, 죽으면 파편과 함께 지움(수가 적어 그때그때 만들어도 됨)
+func minion_spawned(m: Minions.M) -> void:
+	var look: Dictionary = MINION_LOOK[m.kind]
+	var n := _wrap(load(look.model).instantiate(), float(look.rot))
+	if m.kind != "fighter":  # 기뢰는 붉게, 드론은 자홍 — 적이라는 게 바로 읽히게(내 탄 청록과 구분)
+		var g := _glow_quad(1.4, Color(1.6, 0.2, 0.15) if m.kind == "mine" else Color(1.4, 0.3, 1.2), n)
+		(g.material_override as ShaderMaterial).set_shader_parameter("core_amt", 0.0)
+		g.position.y = -0.2
+		n.set_meta("glow", g)
+	minion_nodes[m] = n
+
+func minion_died(m: Minions.M, killed: bool) -> void:
+	var n: Node3D = minion_nodes.get(m)
+	if n == null:
+		return
+	minion_nodes.erase(m)
+	if killed:
+		var u := units_per_px(m.pos)
+		for i in 5:
+			_debris(to3d(m.pos, 1.0), m.r * u * 0.6, m.r * u * 0.18, i)
+	n.queue_free()
 
 func _place(n: Node3D, at: Vector2, px_w: float, lift: float) -> void:
 	n.position = to3d(at, lift)
@@ -424,6 +449,19 @@ func sync(dt: float) -> void:
 		else:
 			m.emission_energy_multiplier = p.flash * 0.5
 	core_ring.rotation.z += dt * 1.5
+	for m in minion_nodes:
+		var mn: Node3D = minion_nodes[m]
+		mn.visible = b.visible
+		_place(mn, m.pos, MINION_LOOK[m.kind].w, 1.5)
+		match m.kind:
+			"fighter":
+				mn.rotation.y = -m.vel.x / 600.0
+			"mine":  # 터질 때가 가까울수록 빠르게 깜박이는 붉은 빛(경고)
+				mn.rotation.y += dt * 2.0
+				var gl: Node3D = mn.get_meta("glow")
+				gl.scale = Vector3.ONE * (0.7 + 0.5 * absf(sin(m.t * (3.0 + m.t * 2.0))))
+			"drone":
+				mn.rotation.y = -m.phase
 	flash_t = maxf(0.0, flash_t - dt)
 	flash.light_energy = 14.0 * flash_t / 0.5
 	# 내 기체: 좌우로 움직이면 그쪽으로 기울어짐

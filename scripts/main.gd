@@ -17,6 +17,7 @@ var shots: Bullets
 var fx: Fx
 var hud: Hud
 var view: View3D
+var minions: Minions
 var day := 0
 var ship: Dictionary
 var save: ConfigFile
@@ -92,6 +93,13 @@ func _ready() -> void:
 	boss.phase_changed.connect(_on_phase)
 	boss.defeated.connect(_on_defeated)
 	boss.part_hit.connect(_on_part_hit)
+	minions = Minions.new()
+	minions.boss = boss
+	minions.enemy = enemy
+	minions.plan = boss.data.get("minions", [])
+	add_child(minions)
+	minions.died.connect(_on_minion_died)
+	minions.spawned.connect(func(m): view.minion_spawned(m))
 	save = Ships.load_save()
 	ship = Ships.get_ship(args.get("ship", save.get_value("ships", "selected", "striker")))
 	player = Player.new()
@@ -178,13 +186,17 @@ func _process(delta: float) -> void:
 	if auto and not over:
 		player.position = Vector2(360 + sin(t * 1.3) * 240.0, 1060 + sin(t * 0.7) * 60.0)
 	boss.player_pos = player.position
-	if ship.weapon == "homing":
-		shots.target = boss.aim_point(player.position)
+	if ship.weapon == "homing":  # 졸병이 있으면 졸병부터(유도탄이 잔챙이를 정리해 주는 맛)
+		var mt := minions.nearest(player.position)
+		shots.target = mt if mt != Vector2.INF else boss.aim_point(player.position)
+	minions.player_pos = player.position
+	if not over:
+		minions.update(delta)
 	boss.update(delta)
 	player.update(delta, not over and t > 0.35)
 	enemy.update(delta)
 	shots.update(delta)
-	var dealt := 0.0 if over else boss.take_hits(shots, 2.5 * float(ship.power))  # 끝난 뒤 날아가던 탄이 결과를 바꾸지 않게
+	var dealt := 0.0 if over else minions.take_hits(shots, 2.5 * float(ship.power)) + boss.take_hits(shots, 2.5 * float(ship.power))  # 끝난 뒤 날아가던 탄이 결과를 바꾸지 않게
 	if dealt > 0.0:
 		score += int(dealt) * 3
 	if not over and player.invuln <= 0.0 and enemy.hit_circle(player.position, player.hitbox) >= 0:
@@ -249,6 +261,20 @@ func _on_part_broken(p: Boss.Part, at: Vector2) -> void:
 	score += int(p.max_hp) * 10
 	_vibrate(60 if big else 35, 0.9 if big else 0.6)
 
+func _on_minion_died(m: Minions.M, killed: bool) -> void:
+	view.minion_died(m, killed)
+	if not killed:
+		return
+	var n: int = Minions.STATS[m.kind].shards
+	fx.burst("spark", m.pos, 0.9)
+	fx.burst("boom", m.pos, 0.5)
+	fx.spawn_gems(m.pos, n * 3, 160.0)
+	fx.number(m.pos, n * 100, false)
+	score += n * 100
+	shake = maxf(shake, 0.3)
+	fx.play("metal", randf_range(1.2, 1.5), -8.0)
+	_vibrate(15, 0.4)
+
 func _on_phase(ph: int) -> void:
 	# 단계가 바뀌면 화면의 적탄이 모두 보석으로 바뀜(쾌감 + 숨 돌릴 틈)
 	var left := enemy.clear_all()
@@ -261,6 +287,7 @@ func _on_phase(ph: int) -> void:
 
 func _on_defeated(at: Vector2) -> void:
 	over = true
+	minions.clear()
 	var left := enemy.clear_all()
 	for i in left.size():
 		if i % 2 == 0:

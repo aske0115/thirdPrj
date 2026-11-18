@@ -11,6 +11,9 @@ const ADJ := [["강철", "Iron"], ["붉은", "Crimson"], ["잠든", "Sleeping"],
 	["번개", "Thunder"], ["얼어붙은", "Frozen"], ["검은", "Black"], ["황금", "Golden"], ["울부짖는", "Howling"]]
 const NOUN := [["고래", "Whale"], ["가오리", "Manta"], ["거북", "Turtle"], ["상어", "Shark"], ["해파리", "Jelly"],
 	["까마귀", "Raven"], ["딱정벌레", "Beetle"], ["전갈", "Scorpion"], ["매", "Hawk"], ["뱀장어", "Eel"]]
+# 보스 몸통(모두 Quaternius CC0, docs/ASSETS.md). rot = 머리가 화면 아래(플레이어 쪽)로 오게 돌리는 각.
+const HULLS := [{model = "res://assets/ships/Executioner.gltf", rot = 180.0}, {model = "res://assets/ships/Station.glb", rot = 0.0},
+	{model = "res://assets/ships/Hauler.glb", rot = 180.0}, {model = "res://assets/ships/Interceptor.glb", rot = 180.0}]
 const WARM := [[2.6, 0.9, 0.35], [2.6, 0.75, 0.3], [2.8, 0.6, 0.25], [2.6, 1.6, 0.4]]
 # 적탄 색: 내 탄(청록·하늘색)과 헷갈리지 않게 파랑·청록 계열은 쓰지 않는다(사용자 원칙)
 const COOL := [[1.0, 0.55, 2.6], [1.0, 0.6, 2.8], [2.8, 0.35, 0.6], [1.6, 0.5, 2.6]]
@@ -65,6 +68,21 @@ static func make(day: int) -> Dictionary:
 		{patterns = [_gun2(r, "gun_l", warm, 1.0), _gun2(r, "gun_r", warm, -1.0), _fan(r, "core", cool, 0.0, 9, 70)]},
 		{patterns = [_spiral(r, "core", warm, 5, 1.0, 0.085, 0.1), _ring(r, "core", cool, 28), _fan(r, "core", [2.8, 2.6, 2.2], 0.0, 3, 14, 520.0, 0.7)]},
 	]
+	# 졸병(결정 012): 날마다 3종 중 2종을 데려옴 → 날마다 유리한 기체가 다름
+	var kinds := ["fighter", "mine", "drone"]
+	kinds.remove_at(r.randi() % 3)
+	var minions := [[], [], []]
+	for k2 in kinds:
+		match k2:
+			"fighter":
+				minions[0].append({kind = "fighter", every = r.randf_range(8.0, 10.0), count = r.randi_range(4, 6), delay = 3.0})
+				minions[1].append({kind = "fighter", every = r.randf_range(10.0, 12.0), count = 4, delay = 4.0})
+			"mine":
+				minions[0 if not "fighter" in kinds else 1].append({kind = "mine", every = r.randf_range(7.0, 9.0), count = r.randi_range(2, 3), delay = 2.0})
+				minions[2].append({kind = "mine", every = 10.0, count = 2, delay = 5.0})
+			"drone":
+				minions[2].append({kind = "drone", every = 0.0, count = 3, delay = 1.0})
+	var hull_def: Dictionary = HULLS[r.randi() % HULLS.size()]
 	# 사람 기준 난이도(실기기 판정 "피하기 까다롭다"): 탄 속도 85%, 발사 간격 1.2배 → 화면 탄 수 약 30% 감소
 	for ph in phases:
 		for pat in ph.patterns:
@@ -77,7 +95,7 @@ static func make(day: int) -> Dictionary:
 		name = {ko = "%s %s" % [adj[0], noun[0]], en = "%s %s" % [adj[1], noun[1]]},
 		intro = {ko = "오늘의 보스 #%d — 전 세계가 같은 보스와 싸워요" % n, en = "Daily Boss #%d — everyone fights the same one today" % n},
 		hull_color = [hull.r, hull.g, hull.b], edge_color = [edge.r, edge.g, edge.b],
-		parts = parts, phases = phases,
+		parts = parts, phases = phases, minions = minions, hull = hull_def,
 	}
 
 static func _near(parts: Array, x: float, y: float) -> bool:

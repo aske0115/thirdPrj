@@ -3,13 +3,13 @@
 importer="scene"
 importer_version=1
 type="PackedScene"
-uid="uid://l340iub4f17k"
-path="res://.godot/imported/Imperial.gltf-1a4704ec693b4ba586622f45090f5053.scn"
+uid="uid://ffcq37cvoegp"
+path="res://.godot/imported/Lancer.glb-792da3b13f97d8bc2478188e5bf411d4.scn"
 
 [deps]
 
-source_file="res://assets/ships/Imperial.gltf"
-dest_files=["res://.godot/imported/Imperial.gltf-1a4704ec693b4ba586622f45090f5053.scn"]
+source_file="res://assets/ships/Lancer.glb"
+dest_files=["res://.godot/imported/Lancer.glb-792da3b13f97d8bc2478188e5bf411d4.scn"]
 
 [params]
 
