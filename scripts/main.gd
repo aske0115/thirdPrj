@@ -1,5 +1,5 @@
 # 진입점: 장면을 코드로 짓고, 입력(손가락 그대로 따라감)·판 흐름·손맛(히트스톱·흔들림·진동)·자동 플레이·화면 저장을 맡는다.
-# 실행 인자(-- 뒤): --auto(자동 플레이) --shot=경로 --shot-at=초 --quit-at=초 --lang=en --boss=iron_whale
+# 실행 인자(-- 뒤): --auto(자동 플레이) --god(시험용 무적) --shot=경로 --shot-at=초 --quit-at=초 --lang=en --boss=iron_whale
 class_name Main
 extends Node2D
 
@@ -16,6 +16,7 @@ var enemy: Bullets
 var shots: Bullets
 var fx: Fx
 var hud: Hud
+var view: View3D
 var score := 0
 var shake := 0.0
 var hitstop_on := false
@@ -51,14 +52,6 @@ func _ready() -> void:
 	cam = Camera2D.new()
 	cam.anchor_mode = Camera2D.ANCHOR_MODE_FIXED_TOP_LEFT
 	add_child(cam)
-	var sky := ColorRect.new()
-	sky.size = Vector2(720, 1280)
-	sky.position = Vector2(0, 0)
-	var sm := ShaderMaterial.new()
-	sm.shader = load("res://shaders/sky.gdshader")
-	sky.material = sm
-	sky.z_index = -50
-	add_child(sky)
 	var dot := _dot_texture()
 	enemy = Bullets.new()
 	add_child(enemy)
@@ -81,17 +74,26 @@ func _ready() -> void:
 	player.position = Vector2(360, 1060)
 	player.z_index = 6
 	add_child(player)
+	# 그림은 3D 층이 맡고, 2D 보스·기체 몸통은 판정용으로만 남긴다(판정 점은 보이게 둠)
+	boss.modulate = Color(1, 1, 1, 0)
+	player.body.visible = false
+	view = View3D.new()
+	view.z_index = -50
+	add_child(view)
+	move_child(view, 0)
+	view.setup(self)
 	hud = Hud.new()
 	add_child(hud)
 	hud.retry.connect(func(): get_tree().reload_current_scene())
 	fx = Fx.new()
 	add_child(fx)
-	fx.setup(hud.font, dot)
+	fx.setup(hud.font_en, dot)
 	fx.gem_collected.connect(func(n): if not over: score += n * 10)
 	# 켜자마자: 경고 + 보스 등장(결정 007 — 첫 화면부터 터지게)
 	var nm: Dictionary = boss.data["name"]
 	var intro: Dictionary = boss.data["intro"]
 	hud.boss_name.text = L("%d주차  %s" % [int(boss.data["week"]), nm["ko"]], "WEEK %d  %s" % [int(boss.data["week"]), nm["en"]])
+	hud.sub.text = "WEEK %02d  ·  %s" % [int(boss.data["week"]), String(nm["en"]).to_upper()]
 	hud.show_banner("WARNING", Color(2.6, 0.4, 0.3), 0.7)
 	hud.flash_screen(Color(1, 0.1, 0.05), 0.35)
 	fx.play("warn", 1.0, -6.0)
@@ -142,6 +144,7 @@ func _process(delta: float) -> void:
 	if not over and player.invuln <= 0.0 and enemy.hit_circle(player.position, Player.HITBOX) >= 0:
 		_player_hit()
 	fx.update(delta, player.position)
+	view.sync(delta)
 	hud.score_lbl.text = str(score)
 	hud.boss_bar.value = boss.hp_fraction()
 	# 카메라 흔들림(실제 시간 기준이라 히트스톱 중에도 흔들림)
@@ -169,6 +172,7 @@ func _on_part_hit(at: Vector2, amount: float, armored: bool) -> void:
 
 func _on_part_broken(p: Boss.Part, at: Vector2) -> void:
 	var big := p.group != "armor"
+	view.part_broken(p, at)
 	hitstop(0.09 if big else 0.06)
 	shake = maxf(shake, 1.0 if big else 0.7)
 	hud.flash_screen(Color(1, 0.9, 0.7), 0.35 if big else 0.22)
@@ -221,6 +225,8 @@ func _on_defeated(at: Vector2) -> void:
 	print("RESULT win time=%.1f score=%d lives=%d" % [t, score, player.lives])
 
 func _player_hit() -> void:
+	if args.has("god"):  # 시험용 무적(끝까지 흐름 확인)
+		return
 	player.lives -= 1
 	player.invuln = 2.0
 	lives_text()

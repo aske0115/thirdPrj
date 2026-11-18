@@ -4,7 +4,9 @@ extends CanvasLayer
 
 signal retry
 
-var font: SystemFont
+var font: Font
+var font_en: Font
+var sub: Label
 var boss_bar: ProgressBar
 var boss_name: Label
 var score_lbl: Label
@@ -16,9 +18,8 @@ var panel_lbl: Label
 var flash: ColorRect
 
 func _ready() -> void:
-	font = SystemFont.new()
-	font.font_names = PackedStringArray(["Apple SD Gothic Neo", "Noto Sans CJK KR", "Noto Sans KR", "sans-serif"])
-	font.font_weight = 800
+	font = load("res://assets/fonts/BlackHanSans-Regular.ttf")
+	font_en = load("res://assets/fonts/Orbitron.ttf")
 	var root := Control.new()
 	root.set_anchors_preset(Control.PRESET_FULL_RECT)
 	root.mouse_filter = Control.MOUSE_FILTER_IGNORE
@@ -27,6 +28,27 @@ func _ready() -> void:
 	th.default_font_size = 30
 	root.theme = th
 	add_child(root)
+	var vig := ColorRect.new()
+	vig.set_anchors_preset(Control.PRESET_FULL_RECT)
+	vig.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	var vm := ShaderMaterial.new()
+	vm.shader = load("res://shaders/vignette.gdshader")
+	vig.material = vm
+	root.add_child(vig)
+	var shade := TextureRect.new()
+	var sg := Gradient.new()
+	sg.set_color(0, Color(0.0, 0.0, 0.03, 0.85))
+	sg.set_color(1, Color(0.0, 0.0, 0.03, 0.0))
+	var sgt := GradientTexture2D.new()
+	sgt.gradient = sg
+	sgt.fill_from = Vector2(0.5, 0.0)
+	sgt.fill_to = Vector2(0.5, 1.0)
+	shade.texture = sgt
+	shade.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+	shade.set_anchors_preset(Control.PRESET_TOP_WIDE)
+	shade.custom_minimum_size.y = 260
+	shade.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	root.add_child(shade)
 	flash = ColorRect.new()
 	flash.set_anchors_preset(Control.PRESET_FULL_RECT)
 	flash.color = Color(1, 1, 1, 0)
@@ -41,31 +63,51 @@ func _ready() -> void:
 	root.add_child(top)
 	var row := HBoxContainer.new()
 	top.add_child(row)
-	boss_name = _lbl("", 26)
-	row.add_child(boss_name)
+	var names := VBoxContainer.new()
+	names.add_theme_constant_override("separation", 0)
+	row.add_child(names)
+	boss_name = _lbl("", 36)
+	names.add_child(boss_name)
+	sub = _lbl("", 15)
+	sub.add_theme_font_override("font", font_en)
+	sub.add_theme_color_override("font_color", Color(1.0, 0.72, 0.45))
+	names.add_child(sub)
 	var sp := Control.new()
 	sp.size_flags_horizontal = Control.SIZE_EXPAND_FILL
 	row.add_child(sp)
-	score_lbl = _lbl("0", 30)
+	score_lbl = _lbl("0", 32)
+	score_lbl.add_theme_font_override("font", font_en)
 	row.add_child(score_lbl)
 	boss_bar = ProgressBar.new()
 	boss_bar.show_percentage = false
-	boss_bar.custom_minimum_size = Vector2(0, 14)
+	boss_bar.custom_minimum_size = Vector2(0, 18)
 	boss_bar.max_value = 1.0
 	boss_bar.step = 0.0
 	boss_bar.value = 1.0
 	var bg := StyleBoxFlat.new()
-	bg.bg_color = Color(0, 0, 0, 0.5)
-	bg.set_corner_radius_all(7)
-	var fg := StyleBoxFlat.new()
-	fg.bg_color = Color(2.2, 0.5, 0.3)
-	fg.set_corner_radius_all(7)
+	bg.bg_color = Color(0.05, 0.04, 0.1, 0.8)
+	bg.border_color = Color(1.0, 0.55, 0.25, 0.9)
+	bg.set_border_width_all(2)
+	bg.set_corner_radius_all(9)
+	# 채움: 빨강→주황 그러데이션(시안과 같은 바)
+	var fgr := Gradient.new()
+	fgr.set_color(0, Color(1.0, 0.25, 0.15))
+	fgr.set_color(1, Color(1.0, 0.75, 0.3))
+	var fgt := GradientTexture2D.new()
+	fgt.gradient = fgr
+	fgt.fill_to = Vector2(1, 0)
+	var fg := StyleBoxTexture.new()
+	fg.texture = fgt
+	fg.set_content_margin_all(0)
+	fg.expand_margin_top = -3
+	fg.expand_margin_bottom = -3
 	boss_bar.add_theme_stylebox_override("background", bg)
 	boss_bar.add_theme_stylebox_override("fill", fg)
 	boss_bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	top.add_child(boss_bar)
 	lives_lbl = _lbl("", 30)
-	lives_lbl.position = Vector2(24, 130)
+	lives_lbl.add_theme_color_override("font_color", Color(0.55, 0.95, 1.0))
+	lives_lbl.position = Vector2(24, 150)
 	root.add_child(lives_lbl)
 	banner = _lbl("", 76)
 	banner.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
@@ -107,7 +149,11 @@ func _lbl(t: String, size: int) -> Label:
 	l.text = t
 	l.add_theme_font_size_override("font_size", size)
 	l.add_theme_constant_override("outline_size", 10)
-	l.add_theme_color_override("font_outline_color", Color(0, 0, 0, 0.85))
+	l.add_theme_color_override("font_outline_color", Color(0, 0, 0.05, 0.85))
+	l.add_theme_color_override("font_shadow_color", Color(1.0, 0.45, 0.15, 0.3))
+	l.add_theme_constant_override("shadow_offset_x", 0)
+	l.add_theme_constant_override("shadow_offset_y", 0)
+	l.add_theme_constant_override("shadow_outline_size", 16)
 	l.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	return l
 
