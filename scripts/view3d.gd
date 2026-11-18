@@ -21,6 +21,9 @@ var ship_w := 0.0
 var ship_prev_x := 360.0
 var bank := 0.0
 var moving: Array[Dictionary] = []
+const BLEED := 24.0  # 3D 층을 화면보다 사방 24px 크게 — 흔들려도 가장자리 빈 바탕이 안 비치게
+var flash: OmniLight3D
+var flash_t := 0.0
 
 func setup(m: Main) -> void:
 	main = m
@@ -42,15 +45,21 @@ func setup(m: Main) -> void:
 	_backdrop()
 	_boss()
 	_player()
+	flash = OmniLight3D.new()
+	flash.light_color = Color(1.0, 0.6, 0.25)
+	flash.light_energy = 0.0
+	world.add_child(flash)
 
 # 3D 해상도는 창 픽셀 크기를 따르되 높이 1600을 넘지 않게(고해상도 폰에서 빛 번짐·MSAA 비용 상한)
 func _fit_size() -> void:
 	vis = get_viewport().get_visible_rect().size
-	var ws := Vector2(get_window().size)
+	var full := vis + Vector2(BLEED, BLEED) * 2.0
+	var ws := Vector2(get_window().size) * full / vis
 	if get_window().content_scale_mode == Window.CONTENT_SCALE_MODE_VIEWPORT:
-		ws = vis * 1.5  # 촬영 모드: 창이 아주 작아도 3D는 선명하게
+		ws = full * 1.5  # 촬영 모드: 창이 아주 작아도 3D는 선명하게
 	vp.size = Vector2i(ws * minf(1.0, 1600.0 / ws.y))
-	sprite.scale = vis / Vector2(vp.size)
+	sprite.position = -Vector2(BLEED, BLEED)
+	sprite.scale = full / Vector2(vp.size)
 
 func _mat(c: Color, metallic: float, rough: float) -> StandardMaterial3D:
 	var m := StandardMaterial3D.new()
@@ -61,7 +70,7 @@ func _mat(c: Color, metallic: float, rough: float) -> StandardMaterial3D:
 
 # 2D 화면 좌표 → 3D. lift만큼 카메라 쪽으로 당겨도 화면 위치는 그대로(같은 광선 위).
 func to3d(p: Vector2, lift := 0.0) -> Vector3:
-	var s := p * Vector2(vp.size) / vis
+	var s := (p + Vector2(BLEED, BLEED)) * Vector2(vp.size) / (vis + Vector2(BLEED, BLEED) * 2.0)
 	var o := cam.project_ray_origin(s)
 	var d := cam.project_ray_normal(s)
 	return o + d * (-o.y / d.y - lift)
@@ -368,13 +377,9 @@ func part_broken(p: Boss.Part, at: Vector2) -> void:
 		for i in 4:
 			_debris(pos, p.r * u * 0.6, p.r * u * 0.18, i)
 		return
-	var flash := OmniLight3D.new()
-	flash.light_color = Color(1.0, 0.6, 0.25)
-	flash.light_energy = 14.0
 	flash.omni_range = 260.0 * u
 	flash.position = pos + Vector3(0, 2, 0)
-	world.add_child(flash)
-	moving.append({node = flash, fade = 14.0, life = 0.5})
+	flash_t = 0.5
 	for i in (16 if p.group != "armor" else 10):
 		_debris(pos, p.r * u * 0.6, p.r * u * 0.18, i)
 
@@ -412,6 +417,8 @@ func sync(dt: float) -> void:
 		else:
 			m.emission_energy_multiplier = p.flash * 0.5
 	core_ring.rotation.z += dt * 1.5
+	flash_t = maxf(0.0, flash_t - dt)
+	flash.light_energy = 14.0 * flash_t / 0.5
 	# 내 기체: 좌우로 움직이면 그쪽으로 기울어짐
 	var pp := main.player.position
 	if dt > 0.004:  # 히트스톱 중(dt≈0)엔 속도가 튀므로 기울기를 건너뜀
@@ -431,8 +438,6 @@ func sync(dt: float) -> void:
 			m2.vel = v
 			n2.position += v * dt
 			n2.rotation += (m2.spin as Vector3) * dt
-		if m2.has("fade"):
-			(n2 as OmniLight3D).light_energy = m2.fade * maxf(m2.life, 0.0) / 0.5
 		if m2.life <= 0.0:
 			n2.queue_free()
 			moving.remove_at(i)

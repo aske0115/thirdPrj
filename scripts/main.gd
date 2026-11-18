@@ -115,7 +115,7 @@ func _ready() -> void:
 	hud.boss_name.text = ("#%d  " % int(boss.data["week"])) + (nm["ko"] if lang == "ko" else nm["en"])
 	hud.sub.text = ("DAILY BOSS #%d  ·  %s" if daily else "WEEK %02d  ·  %s") % [int(boss.data["week"]), String(nm["en"]).to_upper()]
 	hud.show_banner("WARNING", Color(2.6, 0.4, 0.3), 0.7)
-	hud.flash_screen(Color(1, 0.1, 0.05), 0.18)
+	hud.flash_screen(Color(1, 0.1, 0.05), 0.08)
 	fx.play("warn", 1.0, -6.0)
 	shake = 0.9
 	get_tree().create_timer(1.0).timeout.connect(func(): hud.show_card("%s\n%s" % [nm[lang] if nm.has(lang) else nm["en"], intro[lang] if intro.has(lang) else intro["en"]]))
@@ -169,7 +169,8 @@ func _process(delta: float) -> void:
 	hud.boss_bar.value = boss.hp_fraction()
 	# 카메라 흔들림(실제 시간 기준이라 히트스톱 중에도 흔들림)
 	shake = maxf(0.0, shake - real_dt * 2.2)
-	cam.offset = Vector2(randf_range(-1, 1), randf_range(-1, 1)) * shake * shake * 22.0
+	# 매 프레임 무작위로 튕기면 화면 전체가 깜빡여 보임(실기기 판정) → 부드러운 흔들림, 최대 약 12px
+	cam.offset = Vector2(sin(t * 41.0) + 0.5 * sin(t * 97.0), cos(t * 37.0) + 0.5 * cos(t * 89.0)) * minf(shake, 1.2) * 6.0
 	num_t -= real_dt
 	if num_t <= 0.0 and num_acc > 0.0:
 		num_t = 0.09
@@ -208,8 +209,6 @@ func _on_part_broken(p: Boss.Part, at: Vector2) -> void:
 	var big := p.group != "armor"
 	hitstop(0.09 if big else 0.06)
 	shake = maxf(shake, 1.0 if big else 0.7)
-	if big:  # 화면 전체 번쩍임은 큰 부위만, 약하게(잦은 번쩍임 = 깜빡여 보임)
-		hud.flash_screen(Color(1, 0.9, 0.7), 0.12)
 	fx.burst("boom", at, 1.6 if big else 1.0)
 	fx.burst("spark", at, 1.6)
 	fx.burst("smoke", at, 1.2)
@@ -267,7 +266,7 @@ func _player_hit() -> void:
 	lives_text()
 	hitstop(0.12)
 	shake = 1.4
-	hud.flash_screen(Color(1, 0.1, 0.1), 0.18)
+	hud.flash_screen(Color(1, 0.1, 0.1), 0.08)
 	fx.burst("spark", player.position, 1.4)
 	fx.ring(player.position, 90.0, Color(2.8, 0.6, 0.5), 0.35, 8.0)
 	fx.play("thud", 0.7, 4.0)
